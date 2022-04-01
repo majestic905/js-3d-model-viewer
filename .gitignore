@@ -1,3 +1,9 @@
+/.idea
+FBX2glTF-linux-x64
+/src/misc
+.firebase
+.firebaserc
+
 # Logs
 logs
 *.log

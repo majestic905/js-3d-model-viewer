@@ -23,7 +23,7 @@ const opts = {
   trackball: false
 }
 const scene = modelPlayer.prepareScene(viewerElement, opts)
-modelPlayer.loadObject(scene, './assets/sample.obj') // Urls are fine here.
+modelPlayer.loadObject(scene, './assets/sample_01.obj') // Urls are fine here.
 ```
 
 You're done!
