@@ -9,6 +9,7 @@
             padding: 0;
             background: white;
             font-family: Geneva, sans-serif;
+            font-size: 14px;
         }
 
         p {
@@ -36,6 +37,7 @@
             font-weight: bold;
             padding: 1em;
             cursor: pointer;
+            display: inline-block;
         }
 
         .center {
@@ -58,33 +60,35 @@
         .footer {
             padding-bottom: 2em;
         }
+
+        input[type="file"] {
+            display: none;
+        }
     </style>
 </head>
 
 <body>
 <div class="content">
-    <header class="center"><h1>Three.js 3D Model Viewer</h1></header>
+    <header class="center">
+        <h1>Three.js 3D Model Viewer</h1>
+    </header>
 
     <div id="viewer"></div>
 
     <div class="center">
-        <span id="name">Sample 1 (obj)</span>
         <span id="loading"></span>
+        <span id="error"></span>
     </div>
 
     <div class="center">
-        <button class="button" id="sample-1-button">
-            Sample 1 (plain obj)
-        </button>
-        <button class="button" id="sample-2-button">
-            Sample 2 (obj + mtl)
-        </button>
-        <button class="button" id="sample-5-button">
-            Sample 5 (obj + mtl)
-        </button>
-        <button class="button" id="sample-4-button">
-            Sample 4 (fbx with animation)
-        </button>
+        <label class="button">
+            <input type="file" id="open-model-input"/>
+            Open FBX model
+        </label>
+        <label class="button">
+            <input type="file" id="open-texture-input"/>
+            Open texture
+        </label>
     </div>
 
     <div class="center">
@@ -114,84 +118,75 @@
 <script>
     const {BoxVisualization} = this['js-3d-model-viewer'];
 
-    const nameElement = document.getElementById('name');
     const loadingElement = document.getElementById('loading');
+    const errorElement = document.getElementById('error');
     const viewerElement = document.getElementById('viewer');
-
-    const boxVis = new BoxVisualization({containerElementId: 'viewer'});
 
     viewerElement.addEventListener('loading', function (event) {
         const progress = Math.floor(100 * event.detail.loaded / event.detail.total);
-        loadingElement.innerHTML = '|' + progress + '%';
+        loadingElement.innerHTML = 'Loading... ' + progress + '%';
+        errorElement.innerHTML = '';
     });
 
-    viewerElement.addEventListener('loaded', function () { loadingElement.innerHTML = ''; });
-
-    // ---------
-
-    const fullScreenButton = document.getElementById('fullscreen-button');
-    fullScreenButton.addEventListener('click', function () {
-        boxVis.goFullScreen(viewerElement);
+    viewerElement.addEventListener('loaded', function () {
+        loadingElement.innerHTML = '';
+        errorElement.innerHTML = '';
     });
 
-    const startAnimationButton = document.getElementById('start-animation-button');
-    startAnimationButton.addEventListener('click', function() {
-        boxVis.playAnimation();
-    });
-
-    const pauseAnimationButton = document.getElementById('pause-animation-button');
-    pauseAnimationButton.addEventListener('click', function() {
-        boxVis.pauseAnimation();
-    });
-
-    const stopAnimationButton = document.getElementById('stop-animation-button');
-    stopAnimationButton.addEventListener('click', function() {
-        boxVis.stopAnimation();
+    viewerElement.addEventListener('error', function (err) {
+        loadingElement.innerHTML = '';
+        errorElement.innerHTML = err.message;
     });
 
     // ---------
 
-    const sample1Button = document.getElementById('sample-1-button');
-    sample1Button.addEventListener('click', function () {
-        nameElement.innerHTML = 'Sample 1 (obj)';
-        boxVis.clearScene();
-        boxVis.resetCamera();
-        boxVis.loadOBJ('./assets/sample_01.obj')
-            .catch(err => console.error(err));
-    });
+    const boxVis = new BoxVisualization({containerElementId: 'viewer'});
 
-    const sample2Button = document.getElementById('sample-2-button')
-    sample2Button.addEventListener('click', function () {
-        nameElement.innerHTML = 'Sample 2 (obj + mtl)';
-        boxVis.clearScene();
-        boxVis.resetCamera();
-        boxVis.loadOBJ('./assets/sample_02.obj', './assets/sample_02.mtl')
-            .catch(err => console.error(err));
-    });
+    document.getElementById('open-model-input')
+        .addEventListener('change', (ev) => {
+            const uploadedFile = ev.target.files[0];
+            const url = URL.createObjectURL(uploadedFile);
+            boxVis.clearScene();
+            boxVis.loadFBX(url)
+                .then(() => URL.revokeObjectURL(url))
+                .catch((err) => {
+                    console.error(err);
+                    URL.revokeObjectURL(url)
+                });
+        });
 
-    const sample5Button = document.getElementById('sample-5-button')
-    sample5Button.addEventListener('click', function () {
-        nameElement.innerHTML = 'Sample 5 (obj + mtl)';
-        boxVis.clearScene();
-        boxVis.resetCamera();
-        boxVis.loadOBJ('./assets/sample_05.obj', './assets/sample_05.mtl')
-            .catch(err => console.error(err));
-    });
+    document.getElementById('open-texture-input')
+        .addEventListener('change', (ev) => {
+            const uploadedFile = ev.target.files[0];
+            const url = URL.createObjectURL(uploadedFile);
+            boxVis.loadTexture(url)
+                .then(() => URL.revokeObjectURL(url))
+                .catch((err) => {
+                    console.error(err);
+                    URL.revokeObjectURL(url)
+                });
+        });
 
-    const sample4Button = document.getElementById('sample-4-button')
-    sample4Button.addEventListener('click', function () {
-        nameElement.innerHTML = 'Sample 4 (fbx with animation)';
-        boxVis.clearScene();
-        boxVis.resetCamera();
+    // ---------
+
+    document.getElementById('fullscreen-button')
+        .addEventListener('click', function () { boxVis.goFullScreen(viewerElement); });
+
+    document.getElementById('start-animation-button')
+        .addEventListener('click', function() { boxVis.playAnimation(); });
+
+    document.getElementById('pause-animation-button')
+        .addEventListener('click', function() { boxVis.pauseAnimation(); });
+
+    document.getElementById('stop-animation-button')
+        .addEventListener('click', function() { boxVis.stopAnimation(); });
+
+    // ---------
+
+    document.addEventListener('DOMContentLoaded', function() {
         boxVis.loadFBX('./assets/sample_04.fbx')
-            .then(() => boxVis.loadTexture('./assets/sample_04_texture_01.png'))
-            .catch(err => console.error(err))
-            .then(() => setTimeout(() => boxVis.loadTexture("./assets/sample_04_texture_02.png"), 3000));
+            .catch(err => console.error(err));
     });
-
-    // ---------
-
-    sample5Button.click();
 </script>
 </body>
 </html>

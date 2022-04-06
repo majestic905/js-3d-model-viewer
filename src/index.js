@@ -206,75 +206,10 @@ class BoxVisualization {
         this._lights.backLight.position.set(z, 0, -z);
     }
 
-    loadOBJ(objUrl, materialUrl) {
-        if (this._sceneLocked) return false;
-        this._sceneLocked = true;
-
-        return new Promise((resolve, reject) => {
-            if (!materialUrl)
-                resolve();
-
-            const mtlLoader = new MTLLoader();
-
-            mtlLoader.load(materialUrl,
-            materials => {
-                materials.preload();
-                resolve(materials);
-            },
-            (xhr) => {
-                if (xhr.total === 0)
-                    this._emitEvent('loading', {loaded: 0, total: 100});
-                else
-                    this._emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
-            },
-            (err) => {
-                this._emitEvent('error', {err});
-                reject(err);
-            })
-        }).then(materials => new Promise((resolve, reject) => {
-            const objLoader = new OBJLoader();
-
-            if (materials)
-                objLoader.setMaterials(materials);
-
-            objLoader.load(objUrl, (obj) => {
-                console.log('model loaded');
-                if (!objLoader.materials) {
-                    const material = new THREE.MeshPhongMaterial({color: 0xbbbbcc});
-
-                    obj.traverse((child) => {
-                        if (child instanceof THREE.Mesh) {
-                            child.material = material;
-                        }
-                    });
-                }
-
-                this._scene.add(obj);
-                this._model = obj;
-                this._fitCameraToObject(obj);
-                this._sceneLocked = false;
-
-                this._emitEvent('loaded', {obj})
-                resolve(obj);
-            },
-            (xhr) => {
-                if (xhr.total === 0)
-                    this._emitEvent('loading', {loaded: 0, total: 100});
-                else
-                    this._emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
-            },
-            (err) => {
-                this._emitEvent('error', {err});
-                this._sceneLocked = false;
-                reject(err);
-            });
-        }));
-    }
-
-    // ---------
-
     loadFBX(url) {
-        if (this._sceneLocked) return false;
+        if (this._sceneLocked)
+            return Promise.reject(new Error("Other model is already being loaded."));
+
         this._sceneLocked = true;
 
         return new Promise((resolve, reject) => {
@@ -318,14 +253,15 @@ class BoxVisualization {
     }
 
     loadTexture(url) {
+        if (!this._model)
+            return Promise.reject(new Error("You should load model first."));
+
         return new Promise((resolve, reject) => {
             const textureLoader = new THREE.TextureLoader();
 
             textureLoader.load(
                 url,
                 (texture) => {
-                    if (!this._model)
-                        return;
 
                     this._model.traverse(function (child) {
                         if (child.isMesh) {
