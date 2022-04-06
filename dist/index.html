@@ -162,7 +162,7 @@
     </footer>
 </div>
 
-<script src="js-3d-model-viewer.js"></script>
+<script src="js-3d-model-viewer.min.js"></script>
 
 <script>
     const {BoxVisualization} = this['js-3d-model-viewer'];
@@ -259,13 +259,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         boxVis.loadFBX('./assets/sample_04.fbx')
             .catch(err => console.error(err));
-
-        setInterval(() => {
-            if (boxVis._animationController._action) {
-                const action = boxVis._animationController._action;
-                console.log(action.enabled, action.paused, action.weight, action.time, action.timeScale, action.getEffectiveTimeScale())
-            }
-        }, 500);
     });
 </script>
 </body>

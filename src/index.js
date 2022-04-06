@@ -1,4 +1,20 @@
 import * as THREE from 'three';
+
+// import {AmbientLight} from "three/src/lights/AmbientLight";
+// import {AnimationMixer} from "three/src/animation/AnimationMixer";
+// import {Box3} from "three/src/math/Box3";
+// import {Clock} from "three/src/core/Clock";
+// import {Color} from "three/src/math/Color";
+// import {DirectionalLight} from "three/src/lights/DirectionalLight";
+// import {HemisphereLight} from "three/src/lights/HemisphereLight";
+// import {LoopPingPong} from "three/src/constants";
+// import {Mesh} from "three/src/objects/Mesh";
+// import {PerspectiveCamera} from "three/src/cameras/PerspectiveCamera.js";
+// import {Scene} from "three/src/scenes/Scene";
+// import {TextureLoader} from "three/src/loaders/TextureLoader";
+// import {Vector3} from "three/src/math/Vector3";
+// import {WebGLRenderer} from "three/src/renderers/WebGLRenderer";
+
 import {FBXLoader} from 'three/examples/jsm/loaders/FBXLoader';
 import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls'
 
