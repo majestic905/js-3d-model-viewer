@@ -118,6 +118,18 @@
                     Current animation speed: <span id="animation-speed-value">1</span>
                 </p>
             </div>
+
+            <div class="center">
+                <button class="button" id="speed-up-rotation-button">
+                    Rotation speed up
+                </button>
+                <button class="button" id="slow-down-rotation-button">
+                    Rotation slow down
+                </button>
+                <p>
+                    Current rotation speed: <span id="rotation-speed-value">1</span>
+                </p>
+            </div>
         </div>
     </main>
 
@@ -137,6 +149,7 @@
     const errorElement = document.getElementById('error');
     const viewerElement = document.getElementById('viewer');
     const animationSpeedElement = document.getElementById('animation-speed-value');
+    const rotationSpeedElement = document.getElementById('rotation-speed-value');
 
     viewerElement.addEventListener('loading', function (event) {
         const progress = Math.floor(100 * event.detail.loaded / event.detail.total);
@@ -149,9 +162,9 @@
         errorElement.innerHTML = '';
     });
 
-    viewerElement.addEventListener('error', function (err) {
+    viewerElement.addEventListener('error', function (ev) {
         loadingElement.innerHTML = '';
-        errorElement.innerHTML = err.message;
+        errorElement.innerHTML = 'Error: ' + ev.detail.err.message;
     });
 
     // ---------
@@ -205,6 +218,18 @@
         .addEventListener('click', function() {
             const currentValue = Math.round(boxVis.changeAnimationSpeed(-0.1) * 100) / 100;
             animationSpeedElement.innerHTML = currentValue.toString();
+        });
+
+    document.getElementById('speed-up-rotation-button')
+        .addEventListener('click', function() {
+            const currentValue = Math.round(boxVis.changeRotationSpeed(0.1) * 100) / 100;
+            rotationSpeedElement.innerHTML = currentValue.toString();
+        });
+
+    document.getElementById('slow-down-rotation-button')
+        .addEventListener('click', function() {
+            const currentValue = Math.round(boxVis.changeRotationSpeed(-0.1) * 100) / 100;
+            rotationSpeedElement.innerHTML = currentValue.toString();
         });
 
     // ---------

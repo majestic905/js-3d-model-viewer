@@ -39,11 +39,11 @@ class AnimationController {
         if (!this._action)
             return null;
 
-        let effectiveTimeScale = this._action.getEffectiveTimeScale() + amount;
-        effectiveTimeScale = Math.max(0.3, effectiveTimeScale);
-        effectiveTimeScale = Math.min(1.5, effectiveTimeScale);
-        this._action.setEffectiveTimeScale(effectiveTimeScale);
-        return effectiveTimeScale;
+        let value = this._action.getEffectiveTimeScale() + amount;
+        value = Math.max(0.3, value);
+        value = Math.min(1.5, value);
+        this._action.setEffectiveTimeScale(value);
+        return value;
     }
 
     pauseAnimation() {
@@ -181,6 +181,14 @@ class BoxVisualization {
         requestAnimationFrame(this.animate);
     }
 
+    changeRotationSpeed(changeAmount) {
+        let value = this._controls.rotateSpeed + changeAmount;
+        value = Math.max(0.5, value);
+        value = Math.min(2, value);
+        this._controls.rotateSpeed = value;
+        return value;
+    }
+
     // ---------
 
     _emitEvent(eventName, data) {
@@ -312,8 +320,8 @@ class BoxVisualization {
         return this._animationController.pauseAnimation();
     }
 
-    changeAnimationSpeed(effectiveTimeScaleChange) {
-        return this._animationController.changeEffectiveTimeScale(effectiveTimeScaleChange);
+    changeAnimationSpeed(changeAmount) {
+        return this._animationController.changeEffectiveTimeScale(changeAmount);
     }
 
     // ---------
