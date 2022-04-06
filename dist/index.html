@@ -88,9 +88,6 @@
     </div>
 
     <div class="center">
-        <button class="button" id="toggle-grid-button">
-            Toggle grid
-        </button>
         <button class="button" id="fullscreen-button">
             Go fullscreen
         </button>
@@ -135,11 +132,6 @@
     const fullScreenButton = document.getElementById('fullscreen-button');
     fullScreenButton.addEventListener('click', function () {
         boxVis.goFullScreen(viewerElement);
-    });
-
-    const toggleGridButton = document.getElementById('toggle-grid-button');
-    toggleGridButton.addEventListener('click', function() {
-        boxVis.toggleGrid();
     });
 
     const startAnimationButton = document.getElementById('start-animation-button');

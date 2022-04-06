@@ -6,48 +6,6 @@ import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
 import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls'
 
 
-class GridController {
-    constructor(scene = undefined) {
-        this._scene = scene;
-        this._grid = undefined;
-    }
-
-    get grid() {
-        return this._grid;
-    }
-
-    set scene(value) {
-        this._scene = value;
-    }
-
-    _createGrid() {
-        const gridHelper = new THREE.GridHelper(10, 10);
-        gridHelper.material.opacity = 0.5;
-        gridHelper.material.transparent = false;
-        this._scene.add(gridHelper);
-        this._grid = gridHelper;
-    }
-
-    showGrid() {
-        if (!this._grid)
-            this._createGrid();
-        else
-            this._grid.visible = true;
-    }
-
-    hideGrid() {
-        if (this._grid)
-            this._grid.visible = false;
-    }
-
-    toggleGrid() {
-        if (!this._grid)
-            this._createGrid();
-        else
-            this._grid.visible = !this._grid.visible;
-    }
-}
-
 
 class AnimationController {
     constructor(model) {
@@ -139,10 +97,8 @@ class BoxVisualization {
         this._model = undefined;
         this._controls = undefined;
 
-        this._gridController = new GridController();
         this._animationController = new AnimationController();
 
-        this._displayGrid = true;
         this._sceneLocked = false;
 
         this.init();
@@ -188,8 +144,6 @@ class BoxVisualization {
         this._lights = {keyLight, fillLight, backLight, ambient};
 
         // ---------------
-
-        this._gridController.scene = this._scene;
 
         this.animate();
 
@@ -398,20 +352,6 @@ class BoxVisualization {
                 }
             );
         });
-    }
-
-    // ---------
-
-    showGrid() {
-        this._gridController.showGrid();
-    }
-
-    hideGrid() {
-        this._gridController.hideGrid();
-    }
-
-    toggleGrid() {
-        this._gridController.toggleGrid();
     }
 
     // ---------
