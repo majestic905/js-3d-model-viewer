@@ -95,14 +95,26 @@
         <button class="button" id="fullscreen-button">
             Go fullscreen
         </button>
+    </div>
+
+    <div class="center">
         <button class="button" id="start-animation-button">
-            Play/start animation
+            Start or unpause animation
         </button>
         <button class="button" id="pause-animation-button">
             Pause animation
         </button>
         <button class="button" id="stop-animation-button">
             Stop animation
+        </button>
+    </div>
+
+    <div class="center">
+        <button class="button" id="speed-up-animation-button">
+            Animation speed up
+        </button>
+        <button class="button" id="slow-down-animation-button">
+            Animation slow down
         </button>
     </div>
 
@@ -113,7 +125,7 @@
     </footer>
 </div>
 
-<script src="js-3d-model-viewer.min.js"></script>
+<script src="js-3d-model-viewer.js"></script>
 
 <script>
     const {BoxVisualization} = this['js-3d-model-viewer'];
@@ -167,8 +179,6 @@
                 });
         });
 
-    // ---------
-
     document.getElementById('fullscreen-button')
         .addEventListener('click', function () { boxVis.goFullScreen(viewerElement); });
 
@@ -180,6 +190,12 @@
 
     document.getElementById('stop-animation-button')
         .addEventListener('click', function() { boxVis.stopAnimation(); });
+
+    document.getElementById('speed-up-animation-button')
+        .addEventListener('click', function() { boxVis.changeAnimationSpeed(0.1); });
+
+    document.getElementById('slow-down-animation-button')
+        .addEventListener('click', function() { boxVis.changeAnimationSpeed(-0.1); });
 
     // ---------
 

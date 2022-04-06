@@ -1,8 +1,5 @@
 import * as THREE from 'three'
 import {FBXLoader} from 'three/examples/jsm/loaders/FBXLoader';
-import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader';
-import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader';
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
 import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls'
 
 
@@ -22,7 +19,7 @@ class AnimationController {
         this._mixer = new THREE.AnimationMixer(model);
         this._action = this._mixer.clipAction(model.animations[0]);
         this._action.setLoop(THREE.LoopPingPong);
-        this._activated = false; // .play() was called. (un)pausing using implemented method is only possible after .play()
+        this._activated = false; // true == .play() was called. (un)pausing using implemented method is only possible after .play()
     }
 
     set model(value) {
@@ -36,6 +33,15 @@ class AnimationController {
         this._model = undefined;
 
         this._init(value);
+    }
+
+    changeEffectiveTimeScale(amount) {
+        if (!this._action)
+            return null;
+
+        let effectiveTimeScale = this._action.getEffectiveTimeScale() + amount;
+        this._action.setEffectiveTimeScale(effectiveTimeScale);
+        return effectiveTimeScale;
     }
 
     pauseAnimation() {
@@ -302,6 +308,10 @@ class BoxVisualization {
 
     pauseAnimation() {
         this._animationController.pauseAnimation();
+    }
+
+    changeAnimationSpeed(effectiveTimeScaleChange) {
+        this._animationController.changeEffectiveTimeScale(effectiveTimeScaleChange);
     }
 
     // ---------
