@@ -40,6 +40,8 @@ class AnimationController {
             return null;
 
         let effectiveTimeScale = this._action.getEffectiveTimeScale() + amount;
+        effectiveTimeScale = Math.max(0.3, effectiveTimeScale);
+        effectiveTimeScale = Math.min(1.5, effectiveTimeScale);
         this._action.setEffectiveTimeScale(effectiveTimeScale);
         return effectiveTimeScale;
     }
@@ -299,19 +301,19 @@ class BoxVisualization {
     // ---------
 
     stopAnimation() {
-        this._animationController.stopAnimation();
+        return this._animationController.stopAnimation();
     }
 
     playAnimation() {
-        this._animationController.playAnimation();
+        return this._animationController.playAnimation();
     }
 
     pauseAnimation() {
-        this._animationController.pauseAnimation();
+        return this._animationController.pauseAnimation();
     }
 
     changeAnimationSpeed(effectiveTimeScaleChange) {
-        this._animationController.changeEffectiveTimeScale(effectiveTimeScaleChange);
+        return this._animationController.changeEffectiveTimeScale(effectiveTimeScaleChange);
     }
 
     // ---------
