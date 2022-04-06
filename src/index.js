@@ -1,4 +1,4 @@
-import * as THREE from 'three'
+import * as THREE from 'three';
 import {FBXLoader} from 'three/examples/jsm/loaders/FBXLoader';
 import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls'
 
@@ -17,16 +17,25 @@ class AnimationController {
             return;
 
         this._mixer = new THREE.AnimationMixer(model);
+
         this._action = this._mixer.clipAction(model.animations[0]);
         this._action.setLoop(THREE.LoopPingPong);
-        this._activated = false; // true == .play() was called. (un)pausing using implemented method is only possible after .play()
+
+        this._mixer.addEventListener( 'loop', this.onLoop );
+    }
+
+    onLoop = (ev) => {
+        // properties of ev: type, action and loopDelta
+        this._action.paused = true;
     }
 
     set model(value) {
         this.stopAnimation();
 
-        if (this._mixer)
+        if (this._mixer) {
+            this._mixer.removeEventListener('loop', this.onLoop);
             this._mixer.uncacheAction(this._action);
+        }
 
         this._action = undefined;
         this._mixer = undefined;
@@ -35,38 +44,28 @@ class AnimationController {
         this._init(value);
     }
 
-    changeEffectiveTimeScale(amount) {
+    changeTimeScale(amount) {
         if (!this._action)
             return null;
 
-        let value = this._action.getEffectiveTimeScale() + amount;
+        let value = this._action.timeScale + amount;
         value = Math.max(0.3, value);
         value = Math.min(1.5, value);
-        this._action.setEffectiveTimeScale(value);
+        this._action.timeScale = value;
         return value;
     }
 
     pauseAnimation() {
-        if (!this._action || !this._activated)
-            return;
-
         if (this._action && !this._action.paused)
-            this._action.warp(1, 0, 0.1);
-    }
-
-    unpauseAnimation() {
-        if (this._action && this._action.paused) {
-            this._action.paused = false;
-            this._action.warp(0, 1, 0.1);
-        }
+            this._action.warp(this._action.timeScale, 0, 0.1);
     }
 
     playAnimation() {
         if (this._action) {
-            if (this._activated) {
-                this.unpauseAnimation();
+            if (this._action.paused) {
+                this._action.paused = false;
+                this._action.warp(0, this._action.timeScale, 0.1);
             } else {
-                this._activated = true;
                 this._action.play();
             }
         }
@@ -74,7 +73,6 @@ class AnimationController {
 
     stopAnimation() {
         if (this._action) {
-            this._activated = false;
             this._action.stop();
         }
     }
@@ -126,10 +124,12 @@ class BoxVisualization {
         // ---------------
 
         this._scene = new THREE.Scene();
-        this._camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 1000);
+        this._camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 1500);
         this._controls = new TrackballControls(this._camera, this._renderer.domElement);
+        this._controls.maxDistance = 1000;
+        this._controls.minDistance = 100;
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.15);
+        const ambient = new THREE.AmbientLight(0xffffff, 1);
         this._scene.add(ambient);
 
         // ---------------
@@ -146,7 +146,7 @@ class BoxVisualization {
 
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.6);
         hemiLight.groundColor.setHSL(0.095, 1, 0.95);
-        hemiLight.position.set(0, 100, 0);
+        hemiLight.position.set(0, 500, 0);
         this._scene.add(hemiLight);
 
         this._lights = {keyLight, fillLight, backLight, ambient};
@@ -243,10 +243,7 @@ class BoxVisualization {
                     this._scene.add(obj);
                     this._model = obj;
                     this._fitCameraToObject(obj);
-
                     this._animationController.model = obj;
-                    this.playAnimation();
-
                     this._sceneLocked = false;
 
                     this._emitEvent('loaded', {obj});
@@ -321,7 +318,7 @@ class BoxVisualization {
     }
 
     changeAnimationSpeed(changeAmount) {
-        return this._animationController.changeEffectiveTimeScale(changeAmount);
+        return this._animationController.changeTimeScale(changeAmount);
     }
 
     // ---------
