@@ -2,28 +2,19 @@
 
 A web viewer to display 3D models in the browser.
 
-[Demo](https://cgwire.github.io/js-3d-model-viewer/)
+[Demo](https://threejs-d62be.web.app/)
 
 
 ## How to run
 
-Get this library as a dependency:
-
-```bash
-npm install js-3d-model-viewer
-```
 
 Then run this snippet after the HTML of your page is loaded:
 
 ```javascript
-import modelPlayer from 'js-3d-model-viewer'
-const viewerElement = document.getElementById('viewer')
-const opts = {
-  grid: true,
-  trackball: false
-}
-const scene = modelPlayer.prepareScene(viewerElement, opts)
-modelPlayer.loadObject(scene, './assets/sample_01.obj') // Urls are fine here.
+import {BoxVisualization} from 'js-3d-model-viewer'
+const boxVis = new BoxVisualization({containerElementId: 'viewer'});
+boxVis.loadFBX(modelUrl)
+    .then(() => boxVis.loadTexture(textureUrl));
 ```
 
 You're done!
@@ -31,18 +22,7 @@ You're done!
 If you want to go fullscreen, you can do it like this:
 
 ```javascript
-const viewerElement = document.getElementById('viewer')
-const fullScreenButton = document.getElementById('fullscreen-button')
-fullScreenButton.addEventListener('click', () => {
-  modelPlayer.goFullScreen(viewerElement)
-})
-```
-
-If you want to enable the underlying Thee.js cache:
-
-```
-modelPlayer.enableCache()
-// modelPlayer.disableCache()
+boxVis.goFullScreen()
 ```
 
 ## Why
@@ -55,8 +35,8 @@ WebGL and Three.js allow to display easily 3D geometries.
 
 ## Development status
 
-* Currently the viewer supports only `.obj` files.
-* It cannot load textures or materials.
+* Currently the viewer supports only `.fbx` files.
+* It can load textures.
 * Unit tests are missing
 
 
@@ -70,7 +50,7 @@ This viewer is based on [Three.js](https://threejs.org/)
 First install dependencies:
 
 ```
-npm i
+npm install
 ```
 
 All the code is in the `src/index.js` file. Once you did your changes you have to run the dev build:
@@ -79,14 +59,8 @@ All the code is in the `src/index.js` file. Once you did your changes you have t
 npm run dev
 ```
 
-Then you can test it with the demo page by starting a static webserver:
-
-```
-npm run serve
-```
-
 You can see the result in the browser by connecting to
-[http://localhost:9080](http://localhost:9080).
+[http://localhost:8080](http://localhost:8080).
 
 To build the projects for production you have to run the following command:
 
@@ -94,13 +68,13 @@ To build the projects for production you have to run the following command:
 npm run build
 ```
 
-You will obtained a minified version of the sources in the `dist` folder.
+You will obtain a minified version of the sources in the `dist` folder.
 
 
 ## Resources
 
 * Tutorial: https://manu.ninja/webgl-3d-model-viewer-using-three-js/
-* Obj loader: https://threejs.org/docs/#examples/loaders/OBJLoader
+* Three.js docs: https://threejs.org/docs/index.html
 * Sketchfab viewer: https://sketchfab.com/developers/viewer
 
 
