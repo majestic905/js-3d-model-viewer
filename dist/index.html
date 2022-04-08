@@ -103,6 +103,10 @@
                     <span class="material-icons">fullscreen</span>
                     Go fullscreen
                 </button>
+                <button class="button" id="toggle-grid-helper-button">
+                    <span class="material-icons">grid_off</span>
+                    Toggle grid helper
+                </button>
             </div>
 
             <div class="center">
@@ -162,7 +166,7 @@
     </footer>
 </div>
 
-<script src="js-3d-model-viewer.min.js"></script>
+<script src="js-3d-model-viewer.js"></script>
 
 <script>
     const {BoxVisualization} = this['js-3d-model-viewer'];
@@ -222,37 +226,43 @@
         .addEventListener('click', function () { boxVis.goFullScreen(viewerElement); });
 
     document.getElementById('start-animation-button')
-        .addEventListener('click', function() { boxVis.playAnimation(); });
+        .addEventListener('click', function() { boxVis.animation.play(); });
 
     document.getElementById('pause-animation-button')
-        .addEventListener('click', function() { boxVis.pauseAnimation(); });
+        .addEventListener('click', function() { boxVis.animation.pause(); });
 
     document.getElementById('stop-animation-button')
-        .addEventListener('click', function() { boxVis.stopAnimation(); });
+        .addEventListener('click', function() { boxVis.animation.stop(); });
 
     document.getElementById('speed-up-animation-button')
         .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.changeAnimationSpeed(0.1) * 100) / 100;
+            const currentValue = Math.round(boxVis.animation.changeTimeScale(0.1) * 100) / 100;
             animationSpeedElement.innerHTML = currentValue.toString();
         });
 
     document.getElementById('slow-down-animation-button')
         .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.changeAnimationSpeed(-0.1) * 100) / 100;
+            const currentValue = Math.round(boxVis.animation.changeTimeScale(-0.1) * 100) / 100;
             animationSpeedElement.innerHTML = currentValue.toString();
         });
 
     document.getElementById('speed-up-rotation-button')
         .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.changeRotationSpeed(0.1) * 100) / 100;
+            const currentValue = Math.round(boxVis.controls.changeRotationSpeed(0.1) * 100) / 100;
             rotationSpeedElement.innerHTML = currentValue.toString();
         });
 
     document.getElementById('slow-down-rotation-button')
         .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.changeRotationSpeed(-0.1) * 100) / 100;
+            const currentValue = Math.round(boxVis.controls.changeRotationSpeed(-0.1) * 100) / 100;
             rotationSpeedElement.innerHTML = currentValue.toString();
         });
+
+    const toggleGridHelperButton = document.getElementById('toggle-grid-helper-button');
+    toggleGridHelperButton.addEventListener('click', function() {
+        const isVisible = boxVis.grid.toggle();
+        toggleGridHelperButton.children[0].innerText = isVisible ? 'grid_on' : 'grid_off';
+    });
 
     // ---------
 

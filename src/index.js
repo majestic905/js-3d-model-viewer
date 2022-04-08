@@ -16,13 +16,14 @@ import * as THREE from 'three';
 // import {WebGLRenderer} from "three/src/renderers/WebGLRenderer";
 
 import {FBXLoader} from 'three/examples/jsm/loaders/FBXLoader';
-import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls'
+import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls';
 
 
 
 class AnimationController {
-    constructor(model) {
+    constructor(model, onLoop) {
         this._clock = new THREE.Clock();
+        this._onLoopCallback = onLoop;
 
         if (model)
             this._init(model);
@@ -32,24 +33,33 @@ class AnimationController {
         if (!model || !model.animations || model.animations.length === 0)
             return;
 
+        this._model = model;
         this._mixer = new THREE.AnimationMixer(model);
 
         this._action = this._mixer.clipAction(model.animations[0]);
         this._action.setLoop(THREE.LoopPingPong);
 
-        this._mixer.addEventListener( 'loop', this.onLoop );
+        this._mixer.addEventListener('loop', this._onLoop);
     }
 
-    onLoop = (ev) => {
+    _onLoop = (ev) => {
         // properties of ev: type, action and loopDelta
         this._action.paused = true;
+        this._onLoopCallback();
+    }
+
+    _update() {
+        if (this._mixer) {
+            const delta = this._clock.getDelta();
+            this._mixer.update(delta);
+        }
     }
 
     set model(value) {
-        this.stopAnimation();
+        this.stop();
 
         if (this._mixer) {
-            this._mixer.removeEventListener('loop', this.onLoop);
+            this._mixer.removeEventListener('loop', this._onLoop);
             this._mixer.uncacheAction(this._action);
         }
 
@@ -71,12 +81,12 @@ class AnimationController {
         return value;
     }
 
-    pauseAnimation() {
+    pause() {
         if (this._action && !this._action.paused)
             this._action.warp(this._action.timeScale, 0, 0.1);
     }
 
-    playAnimation() {
+    play() {
         if (this._action) {
             if (this._action.paused) {
                 this._action.paused = false;
@@ -87,17 +97,78 @@ class AnimationController {
         }
     }
 
-    stopAnimation() {
+    stop() {
         if (this._action) {
             this._action.stop();
         }
     }
+}
 
-    update() {
-        if (this._mixer) {
-            const delta = this._clock.getDelta();
-            this._mixer.update(delta);
-        }
+
+class Grid {
+    constructor(scene) {
+        if (!scene)
+            throw new Error("Scene must be provided");
+
+        this._grid = new THREE.GridHelper(400, 20, 0x0000ff, 0x808080);
+        this._grid.material.opacity = 0.5;
+        scene.add(this._grid);
+    }
+
+    reveal() {
+        this._grid.visible = true;
+    }
+
+    hide() {
+        this._grid.visible = false;
+    }
+
+    toggle() {
+        this._grid.visible = !this._grid.visible;
+        return this._grid.visible;
+    }
+}
+
+
+class Controls {
+    constructor(scene, camera, renderer, params = {}) {
+        if (!scene)
+            throw new Error("Scene must be provided");
+
+        this._controls = new TrackballControls(camera, renderer.domElement);
+
+        const {minDistance = 100, maxDistance = 1000} = params;
+        this._controls.maxDistance = maxDistance;
+        this._controls.minDistance = minDistance;
+
+        scene.add(this._controls);
+    }
+
+    changeRotationSpeed(changeAmount) {
+        let value = this._controls.rotateSpeed + changeAmount;
+        value = Math.max(0.5, value);
+        value = Math.min(2, value);
+        this._controls.rotateSpeed = value;
+        return value;
+    }
+
+    _reset() {
+        this._controls.reset();
+    }
+
+    _update() {
+        this._controls.update();
+    }
+}
+
+
+class ModelMovement {
+    static targetPosition = undefined;
+    static smoothness = 0.5;
+
+    static _update(model) {
+        if (ModelMovement.targetPosition)
+            model.position.lerp(ModelMovement.targetPosition, ModelMovement.smoothness);
     }
 }
 
@@ -117,9 +188,10 @@ class BoxVisualization {
         this._lights = undefined;
         this._renderer = undefined;
         this._model = undefined;
-        this._controls = undefined;
 
-        this._animationController = new AnimationController();
+        this.controls = undefined;
+        this.animation = undefined;
+        this.grid = undefined;
 
         this._sceneLocked = false;
 
@@ -140,15 +212,18 @@ class BoxVisualization {
         // ---------------
 
         this._scene = new THREE.Scene();
+
         this._camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 1500);
-        this._controls = new TrackballControls(this._camera, this._renderer.domElement);
-        this._controls.maxDistance = 1000;
-        this._controls.minDistance = 100;
+
+        this.controls = new Controls(this._scene, this._camera, this._renderer);
+
+        this.grid = new Grid(this._scene);
+        this.grid.hide();
+
+        // ---------------
 
         const ambient = new THREE.AmbientLight(0xffffff, 1);
         this._scene.add(ambient);
-
-        // ---------------
 
         const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
         const keyLight = new THREE.DirectionalLight(new THREE.Color('#EEEEEE'), 0.3);
@@ -169,6 +244,8 @@ class BoxVisualization {
 
         // ---------------
 
+        this.animation = new AnimationController(undefined, this.moveModelToZero);
+
         this.animate();
 
         window.addEventListener('resize', this.onWindowResize, false);
@@ -187,22 +264,16 @@ class BoxVisualization {
     }
 
     animate = () => {
-        this._animationController.update();
+        this.animation._update();
+
+        ModelMovement._update(this._model);
 
         // trackball controls needs to be updated in the animation loop before it will work
-        this._controls.update();
+        this.controls._update();
 
         this._renderer.render(this._scene, this._camera);
 
         requestAnimationFrame(this.animate);
-    }
-
-    changeRotationSpeed(changeAmount) {
-        let value = this._controls.rotateSpeed + changeAmount;
-        value = Math.max(0.5, value);
-        value = Math.min(2, value);
-        this._controls.rotateSpeed = value;
-        return value;
     }
 
     // ---------
@@ -210,32 +281,6 @@ class BoxVisualization {
     _emitEvent(eventName, data) {
         const event = new window.CustomEvent(eventName, {detail: data});
         this._containerElement.dispatchEvent(event);
-    }
-
-    _fitCameraToObject(object) {
-        const boundingBox = new THREE.Box3();
-        const size = new THREE.Vector3();
-
-        boundingBox.setFromObject(object);
-        boundingBox.getSize(size);
-
-        // reset object position
-        object.position.x = -boundingBox.min.x - size.x / 2;
-        object.position.y = -boundingBox.min.y - size.y / 2;
-        object.position.z = -boundingBox.min.z - size.z / 2;
-        object.rotation.z = 0;
-
-        // change camera position
-        const fov = this._camera.fov;
-        const cameraZ = Math.abs(size.y / 2 * Math.tan(fov * 2));
-        const z = Math.max(cameraZ, size.z) * 1.5;
-        this._camera.position.z = z;
-        this._camera.updateProjectionMatrix();
-
-        // change lights position
-        this._lights.keyLight.position.set(-z, 0, z);
-        this._lights.fillLight.position.set(z, 0, z);
-        this._lights.backLight.position.set(z, 0, -z);
     }
 
     loadFBX(url) {
@@ -258,8 +303,8 @@ class BoxVisualization {
 
                     this._scene.add(obj);
                     this._model = obj;
-                    this._fitCameraToObject(obj);
-                    this._animationController.model = obj;
+                    this._fitCameraToModel(obj);
+                    this.animation.model = obj;
                     this._sceneLocked = false;
 
                     this._emitEvent('loaded', {obj});
@@ -321,30 +366,52 @@ class BoxVisualization {
 
     // ---------
 
-    stopAnimation() {
-        return this._animationController.stopAnimation();
+    _fitCameraToModel() {
+        const boundingBox = new THREE.Box3();
+        const size = new THREE.Vector3();
+
+        boundingBox.setFromObject(this._model);
+        boundingBox.getSize(size);
+
+        // reset object position
+        this._model.position.x = -boundingBox.min.x - size.x / 2;
+        this._model.position.y = -boundingBox.min.y - size.y / 2;
+        this._model.position.z = -boundingBox.min.z - size.z / 2;
+        this._model.rotation.z = 0;
+
+        // change camera position
+        const fov = this._camera.fov;
+        const cameraZ = Math.abs(size.y / 2 * Math.tan(fov * 2));
+        const z = Math.max(cameraZ, size.z) * 1.5;
+        this._camera.position.z = z;
+        this._camera.updateProjectionMatrix();
+
+        // change lights position
+        this._lights.keyLight.position.set(-z, 0, z);
+        this._lights.fillLight.position.set(z, 0, z);
+        this._lights.backLight.position.set(z, 0, -z);
     }
 
-    playAnimation() {
-        return this._animationController.playAnimation();
-    }
+    moveModelToZero = () => {
+        const boundingBox = new THREE.Box3();
+        const center = new THREE.Vector3();
 
-    pauseAnimation() {
-        return this._animationController.pauseAnimation();
-    }
+        boundingBox.setFromObject(this._model);
+        boundingBox.getCenter(center);
 
-    changeAnimationSpeed(changeAmount) {
-        return this._animationController.changeTimeScale(changeAmount);
-    }
+        // this._model.translateX(-center.x);
+        // this._model.translateY(-center.y);
+        // this._model.translateZ(-center.z);
 
-    // ---------
-
-    resetCamera() {
-        this._controls.reset();
+        ModelMovement.targetPosition = new THREE.Vector3(
+            this._model.position.x - center.x,
+            this._model.position.y - center.y,
+            this._model.position.z - center.z
+        );
     }
 
     clearScene() {
-        this._animationController.model = undefined;
+        this.animation.model = undefined;
 
         for (const obj of this._scene.children) {
             if (obj.type === "Group") {
