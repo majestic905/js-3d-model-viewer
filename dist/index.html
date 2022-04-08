@@ -29,6 +29,7 @@
             height: 600px;
             width: 1000px;
             margin-right: 1em;
+            box-shadow: 0 0 2px 1px rgba(0, 0, 0, 1);
         }
 
         #controls {
@@ -111,7 +112,7 @@
 
             <div class="center">
                 <hr/>
-                <h3>Animation</h3>
+                <h3>Loop Animation</h3>
 
                 <button class="button" id="start-animation-button">
                     <span class="material-icons">play_arrow</span>
@@ -137,7 +138,24 @@
                     Slow down
                 </button>
                 <p>
-                    Current animation speed: <span id="animation-speed-value">1</span>
+                    Current loop animation speed: <span id="animation-speed-value">1</span>
+                </p>
+            </div>
+
+            <div class="center">
+                <hr/>
+                <h3>Pull Animation</h3>
+
+                <button class="button" id="speed-up-pull-animation-button">
+                    <span class="material-icons">keyboard_double_arrow_up</span>
+                    Speed up
+                </button>
+                <button class="button" id="slow-down-pull-animation-button">
+                    <span class="material-icons">keyboard_double_arrow_down</span>
+                    Speed down
+                </button>
+                <p>
+                    Current pull animation speed: <span id="pull-animation-speed-value">0.5</span>
                 </p>
             </div>
 
@@ -166,7 +184,7 @@
     </footer>
 </div>
 
-<script src="js-3d-model-viewer.js"></script>
+<script src="js-3d-model-viewer.min.js"></script>
 
 <script>
     const {BoxVisualization} = this['js-3d-model-viewer'];
@@ -176,6 +194,8 @@
     const viewerElement = document.getElementById('viewer');
     const animationSpeedElement = document.getElementById('animation-speed-value');
     const rotationSpeedElement = document.getElementById('rotation-speed-value');
+    const pullAnimationSpeedElement = document.getElementById('pull-animation-speed-value');
+    const controlsTypeElement = document.getElementById('controls-type-value');
 
     viewerElement.addEventListener('loading', function (event) {
         const progress = Math.floor(100 * event.detail.loaded / event.detail.total);
@@ -225,6 +245,12 @@
     document.getElementById('fullscreen-button')
         .addEventListener('click', function () { boxVis.goFullScreen(viewerElement); });
 
+    const toggleGridHelperButton = document.getElementById('toggle-grid-helper-button');
+    toggleGridHelperButton.addEventListener('click', function() {
+        const isVisible = boxVis.grid.toggle();
+        toggleGridHelperButton.children[0].innerText = isVisible ? 'grid_on' : 'grid_off';
+    });
+
     document.getElementById('start-animation-button')
         .addEventListener('click', function() { boxVis.animation.play(); });
 
@@ -246,6 +272,18 @@
             animationSpeedElement.innerHTML = currentValue.toString();
         });
 
+    document.getElementById('speed-up-pull-animation-button')
+        .addEventListener('click', function() {
+            const currentValue = Math.round(boxVis.changePullAnimationSpeed(0.05) * 100) / 100;
+            pullAnimationSpeedElement.innerHTML = currentValue.toString();
+        });
+
+    document.getElementById('slow-down-pull-animation-button')
+        .addEventListener('click', function() {
+            const currentValue = Math.round(boxVis.changePullAnimationSpeed(-0.05) * 100) / 100;
+            pullAnimationSpeedElement.innerHTML = currentValue.toString();
+        });
+
     document.getElementById('speed-up-rotation-button')
         .addEventListener('click', function() {
             const currentValue = Math.round(boxVis.controls.changeRotationSpeed(0.1) * 100) / 100;
@@ -257,12 +295,6 @@
             const currentValue = Math.round(boxVis.controls.changeRotationSpeed(-0.1) * 100) / 100;
             rotationSpeedElement.innerHTML = currentValue.toString();
         });
-
-    const toggleGridHelperButton = document.getElementById('toggle-grid-helper-button');
-    toggleGridHelperButton.addEventListener('click', function() {
-        const isVisible = boxVis.grid.toggle();
-        toggleGridHelperButton.children[0].innerText = isVisible ? 'grid_on' : 'grid_off';
-    });
 
     // ---------
 

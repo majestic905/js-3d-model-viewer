@@ -17,7 +17,7 @@ import * as THREE from 'three';
 
 import {FBXLoader} from 'three/examples/jsm/loaders/FBXLoader';
 import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls';
-
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 
 
 class AnimationController {
@@ -75,8 +75,8 @@ class AnimationController {
             return null;
 
         let value = this._action.timeScale + amount;
-        value = Math.max(0.3, value);
-        value = Math.min(1.5, value);
+        value = Math.max(0.2, value);
+        value = Math.min(2, value);
         this._action.timeScale = value;
         return value;
     }
@@ -131,33 +131,23 @@ class Grid {
 
 
 class Controls {
-    constructor(scene, camera, renderer, params = {}) {
-        if (!scene)
-            throw new Error("Scene must be provided");
+    constructor(camera, renderer, params = {}) {
+        if (!camera || !renderer)
+            throw new Error("Controls: camera and renderer must be provided");
 
-        this._controls = new TrackballControls(camera, renderer.domElement);
+        this._controls = new OrbitControls(camera, renderer.domElement);
 
         const {minDistance = 100, maxDistance = 1000} = params;
         this._controls.maxDistance = maxDistance;
         this._controls.minDistance = minDistance;
-
-        scene.add(this._controls);
     }
 
     changeRotationSpeed(changeAmount) {
         let value = this._controls.rotateSpeed + changeAmount;
-        value = Math.max(0.5, value);
+        value = Math.max(0.2, value);
         value = Math.min(2, value);
         this._controls.rotateSpeed = value;
         return value;
-    }
-
-    _reset() {
-        this._controls.reset();
-    }
-
-    _update() {
-        this._controls.update();
     }
 }
 
@@ -212,10 +202,11 @@ class BoxVisualization {
         // ---------------
 
         this._scene = new THREE.Scene();
+        this._scene.background = new THREE.Color(0xffffff);
 
         this._camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 1500);
 
-        this.controls = new Controls(this._scene, this._camera, this._renderer);
+        this.controls = new Controls(this._camera, this._renderer);
 
         this.grid = new Grid(this._scene);
         this.grid.hide();
@@ -269,7 +260,7 @@ class BoxVisualization {
         ModelMovement._update(this._model);
 
         // trackball controls needs to be updated in the animation loop before it will work
-        this.controls._update();
+        // this.controls._update();
 
         this._renderer.render(this._scene, this._camera);
 
@@ -366,6 +357,34 @@ class BoxVisualization {
 
     // ---------
 
+    changePullAnimationSpeed(changeAmount) {
+        let value = ModelMovement.smoothness + changeAmount;
+        value = Math.max(0.1, value);
+        value = Math.min(1, value);
+        ModelMovement.smoothness = value;
+        return value;
+    }
+
+    moveModelToZero = () => {
+        const boundingBox = new THREE.Box3();
+        const center = new THREE.Vector3();
+
+        boundingBox.setFromObject(this._model);
+        boundingBox.getCenter(center);
+
+        // this._model.translateX(-center.x);
+        // this._model.translateY(-center.y);
+        // this._model.translateZ(-center.z);
+
+        ModelMovement.targetPosition = new THREE.Vector3(
+            this._model.position.x - center.x,
+            this._model.position.y - center.y,
+            this._model.position.z - center.z
+        );
+    }
+
+    // ---------
+
     _fitCameraToModel() {
         const boundingBox = new THREE.Box3();
         const size = new THREE.Vector3();
@@ -390,24 +409,6 @@ class BoxVisualization {
         this._lights.keyLight.position.set(-z, 0, z);
         this._lights.fillLight.position.set(z, 0, z);
         this._lights.backLight.position.set(z, 0, -z);
-    }
-
-    moveModelToZero = () => {
-        const boundingBox = new THREE.Box3();
-        const center = new THREE.Vector3();
-
-        boundingBox.setFromObject(this._model);
-        boundingBox.getCenter(center);
-
-        // this._model.translateX(-center.x);
-        // this._model.translateY(-center.y);
-        // this._model.translateZ(-center.z);
-
-        ModelMovement.targetPosition = new THREE.Vector3(
-            this._model.position.x - center.x,
-            this._model.position.y - center.y,
-            this._model.position.z - center.z
-        );
     }
 
     clearScene() {
