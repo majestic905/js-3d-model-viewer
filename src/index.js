@@ -202,7 +202,7 @@ class BoxVisualization {
         // ---------------
 
         this._scene = new THREE.Scene();
-        this._scene.background = new THREE.Color(0xffffff);
+        this._scene.background = new THREE.Color(0xeeeeee);
 
         this._camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 1500);
 
