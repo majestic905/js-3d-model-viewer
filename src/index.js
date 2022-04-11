@@ -154,7 +154,7 @@ class Controls {
 
 class ModelMovement {
     static targetPosition = undefined;
-    static smoothness = 0.5;
+    static smoothness = 0.1;
 
     static _update(model) {
         if (ModelMovement.targetPosition)
@@ -285,6 +285,7 @@ class BoxVisualization {
 
             fbxLoader.load(url,
                 (obj) => {
+
                     obj.traverse((child) => {
                         if (child instanceof THREE.Mesh) {
                             child.castShadow = true;
@@ -359,7 +360,7 @@ class BoxVisualization {
 
     changePullAnimationSpeed(changeAmount) {
         let value = ModelMovement.smoothness + changeAmount;
-        value = Math.max(0.1, value);
+        value = Math.max(0.01, value);
         value = Math.min(1, value);
         ModelMovement.smoothness = value;
         return value;

@@ -155,7 +155,7 @@
                     Speed down
                 </button>
                 <p>
-                    Current pull animation speed: <span id="pull-animation-speed-value">0.5</span>
+                    Current pull animation speed: <span id="pull-animation-speed-value">0.1</span>
                 </p>
             </div>
 
@@ -184,7 +184,7 @@
     </footer>
 </div>
 
-<script src="js-3d-model-viewer.min.js"></script>
+<script src="js-3d-model-viewer.js"></script>
 
 <script>
     const {BoxVisualization} = this['js-3d-model-viewer'];
@@ -274,13 +274,13 @@
 
     document.getElementById('speed-up-pull-animation-button')
         .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.changePullAnimationSpeed(0.05) * 100) / 100;
+            const currentValue = Math.round(boxVis.changePullAnimationSpeed(0.01) * 100) / 100;
             pullAnimationSpeedElement.innerHTML = currentValue.toString();
         });
 
     document.getElementById('slow-down-pull-animation-button')
         .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.changePullAnimationSpeed(-0.05) * 100) / 100;
+            const currentValue = Math.round(boxVis.changePullAnimationSpeed(-0.01) * 100) / 100;
             pullAnimationSpeedElement.innerHTML = currentValue.toString();
         });
 
