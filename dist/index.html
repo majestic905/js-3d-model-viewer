@@ -42,10 +42,11 @@
             color: #3CB371;
             border: 3px solid #3CB371;
             font-weight: bold;
-            padding: 1em;
+            padding: 0.5em 1em;
             cursor: pointer;
             display: inline-block;
             font-size: 14px;
+            text-transform: uppercase;
         }
 
         .center {
@@ -114,17 +115,13 @@
                 <hr/>
                 <h3>Loop Animation</h3>
 
-                <button class="button" id="start-animation-button">
+                <button class="button" id="play-animation-button">
                     <span class="material-icons">play_arrow</span>
-                    Start or unpause
-                </button>
-                <button class="button" id="pause-animation-button">
-                    <span class="material-icons">pause</span>
-                    Pause
+                    <span>Play</span>
                 </button>
                 <button class="button" id="stop-animation-button">
                     <span class="material-icons">stop</span>
-                    Stop/reset
+                    <span>Reset</span>
                 </button>
             </div>
 
@@ -138,7 +135,7 @@
                     Slow down
                 </button>
                 <p>
-                    Current loop animation speed: <span id="animation-speed-value">1</span>
+                    Current loop animation speed: <span id="animation-speed-value">0.5</span>
                 </p>
             </div>
 
@@ -155,7 +152,7 @@
                     Speed down
                 </button>
                 <p>
-                    Current pull animation speed: <span id="pull-animation-speed-value">0.1</span>
+                    Current pull animation speed: <span id="pull-animation-speed-value">0.03</span>
                 </p>
             </div>
 
@@ -171,7 +168,7 @@
                     Rotation slow down
                 </button>
                 <p>
-                    Current rotation speed: <span id="rotation-speed-value">1</span>
+                    Current rotation speed: <span id="rotation-speed-value">0.5</span>
                 </p>
             </div>
         </div>
@@ -213,6 +210,42 @@
         errorElement.innerHTML = 'Error: ' + ev.detail.err.message;
     });
 
+    viewerElement.addEventListener('error', function (ev) {
+        loadingElement.innerHTML = '';
+        errorElement.innerHTML = 'Error: ' + ev.detail.err.message;
+    });
+
+    // ---------
+
+    const playAnimationButton = document.getElementById('play-animation-button');
+    const stopAnimationButton = document.getElementById('stop-animation-button');
+
+    const playAnimation = () => { boxVis.animation.play(); };
+    const pauseAnimation = () => { boxVis.animation.pause(); };
+    const stopAnimation = () => { boxVis.animation.stop(); };
+
+    playAnimationButton.addEventListener('click', playAnimation);
+    stopAnimationButton.addEventListener('click', stopAnimation);
+
+    viewerElement.addEventListener('animationStarted', function (ev) {
+        playAnimationButton.removeEventListener('click', playAnimation);
+
+        playAnimationButton.children[0].innerHTML = 'pause';
+        playAnimationButton.children[1].innerHTML = 'Pause';
+        playAnimationButton.addEventListener('click', pauseAnimation);
+    });
+
+    const onPauseOrStop = () => {
+        playAnimationButton.removeEventListener('click', pauseAnimation);
+
+        playAnimationButton.children[0].innerHTML = 'play_arrow';
+        playAnimationButton.children[1].innerHTML = 'Play';
+        playAnimationButton.addEventListener('click', playAnimation);
+    }
+
+    viewerElement.addEventListener('animationPaused', onPauseOrStop);
+    viewerElement.addEventListener('animationStopped', onPauseOrStop);
+
     // ---------
 
     const boxVis = new BoxVisualization({containerElementId: 'viewer'});
@@ -250,15 +283,6 @@
         const isVisible = boxVis.grid.toggle();
         toggleGridHelperButton.children[0].innerText = isVisible ? 'grid_on' : 'grid_off';
     });
-
-    document.getElementById('start-animation-button')
-        .addEventListener('click', function() { boxVis.animation.play(); });
-
-    document.getElementById('pause-animation-button')
-        .addEventListener('click', function() { boxVis.animation.pause(); });
-
-    document.getElementById('stop-animation-button')
-        .addEventListener('click', function() { boxVis.animation.stop(); });
 
     document.getElementById('speed-up-animation-button')
         .addEventListener('click', function() {
@@ -300,6 +324,11 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         boxVis.loadFBX('./assets/sample_04.fbx')
+            .then(() => {
+                boxVis.controls.changeRotationSpeed(-0.5);
+                boxVis.animation.changeTimeScale(-0.5);
+                boxVis.changePullAnimationSpeed(-0.07);
+            })
             .catch(err => console.error(err));
     });
 </script>

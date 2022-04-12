@@ -44,6 +44,7 @@ class AnimationController {
 
     _onLoop = (ev) => {
         // properties of ev: type, action and loopDelta
+        EventEmitter.emitEvent('animationPaused');
         this._action.paused = true;
         this._onLoopCallback();
     }
@@ -82,12 +83,17 @@ class AnimationController {
     }
 
     pause() {
-        if (this._action && !this._action.paused)
+        if (this._action && !this._action.paused) {
             this._action.warp(this._action.timeScale, 0, 0.1);
+
+            EventEmitter.emitEvent('animationPaused');
+        }
     }
 
     play() {
         if (this._action) {
+            EventEmitter.emitEvent('animationStarted');
+
             if (this._action.paused) {
                 this._action.paused = false;
                 this._action.warp(0, this._action.timeScale, 0.1);
@@ -100,6 +106,8 @@ class AnimationController {
     stop() {
         if (this._action) {
             this._action.stop();
+
+            EventEmitter.emitEvent('animationStopped');
         }
     }
 }
@@ -163,6 +171,20 @@ class ModelMovement {
 }
 
 
+class EventEmitter {
+    static containerElementId = undefined;
+    
+    static emitEvent(eventName, data = {}) {
+        const element = document.getElementById(EventEmitter.containerElementId);
+        if (!element)
+            return;
+        
+        const event = new window.CustomEvent(eventName, {detail: data});
+        element.dispatchEvent(event);
+    }
+}
+
+
 class BoxVisualization {
     constructor({containerElementId}) {
         if (!containerElementId)
@@ -172,6 +194,8 @@ class BoxVisualization {
 
         if (!this._containerElement)
             throw new Error(`DOM element with id=${containerElementId} not found`);
+
+        EventEmitter.containerElementId = containerElementId;
 
         this._camera = undefined;
         this._scene = undefined;
@@ -269,7 +293,7 @@ class BoxVisualization {
 
     // ---------
 
-    _emitEvent(eventName, data) {
+    _emitEvent(eventName, data = {}) {
         const event = new window.CustomEvent(eventName, {detail: data});
         this._containerElement.dispatchEvent(event);
     }
@@ -299,18 +323,18 @@ class BoxVisualization {
                     this.animation.model = obj;
                     this._sceneLocked = false;
 
-                    this._emitEvent('loaded', {obj});
+                    EventEmitter.emitEvent('loaded', {obj});
                     resolve(obj);
                 },
                 (xhr) => {
                     if (xhr.total === 0) {
-                        this._emitEvent('loading', {loaded: 0, total: 100});
+                        EventEmitter.emitEvent('loading', {loaded: 0, total: 100});
                     } else {
-                        this._emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
+                        EventEmitter.emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
                     }
                 },
                 (err) => {
-                    this._emitEvent('error', {err});
+                    EventEmitter.emitEvent('error', {err});
                     this._sceneLocked = false;
                     reject(err);
                 }
@@ -338,14 +362,14 @@ class BoxVisualization {
                         }
                     });
 
-                    this._emitEvent('loaded', {})
+                    EventEmitter.emitEvent('loaded', {})
                     resolve(texture);
                 },
                 (xhr) => {
                     if (xhr.total === 0) {
-                        this._emitEvent('loading', {loaded: 0, total: 100});
+                        EventEmitter.emitEvent('loading', {loaded: 0, total: 100});
                     } else {
-                        this._emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
+                        EventEmitter.emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
                     }
                 },
                 function (err) {
