@@ -93,10 +93,18 @@
                     <span class="material-icons">file_open</span>
                     Open FBX model
                 </label>
+            </div>
+
+            <div class="center">
                 <label class="button">
-                    <input type="file" id="open-texture-input"/>
+                    <input type="file" id="open-outer-texture-input"/>
                     <span class="material-icons">file_open</span>
-                    Open texture
+                    Load outer texture
+                </label>
+                <label class="button">
+                    <input type="file" id="open-inner-texture-input"/>
+                    <span class="material-icons">file_open</span>
+                    Load inner texture
                 </label>
             </div>
 
@@ -263,11 +271,23 @@
                 });
         });
 
-    document.getElementById('open-texture-input')
+    document.getElementById('open-inner-texture-input')
         .addEventListener('change', (ev) => {
             const uploadedFile = ev.target.files[0];
             const url = URL.createObjectURL(uploadedFile);
-            boxVis.loadTexture(url)
+            boxVis.loadInnerTexture(url)
+                .then(() => URL.revokeObjectURL(url))
+                .catch((err) => {
+                    console.error(err);
+                    URL.revokeObjectURL(url)
+                });
+        });
+
+    document.getElementById('open-outer-texture-input')
+        .addEventListener('change', (ev) => {
+            const uploadedFile = ev.target.files[0];
+            const url = URL.createObjectURL(uploadedFile);
+            boxVis.loadOuterTexture(url)
                 .then(() => URL.revokeObjectURL(url))
                 .catch((err) => {
                     console.error(err);
@@ -329,6 +349,8 @@
                 boxVis.animation.changeTimeScale(-0.5);
                 boxVis.changePullAnimationSpeed(-0.07);
             })
+            .then(() => boxVis.loadInnerTexture("./assets/sample_04_texture_01.png"))
+            .then(() => boxVis.loadOuterTexture("./assets/sample_04_texture_02.png"))
             .catch(err => console.error(err));
     });
 </script>

@@ -311,9 +311,29 @@ class BoxVisualization {
                 (obj) => {
 
                     obj.traverse((child) => {
-                        if (child instanceof THREE.Mesh) {
+                        if (child.isMesh) {
                             child.castShadow = true;
                             child.receiveShadow = true;
+
+                            child.geometry.clearGroups();
+
+                            child.geometry.addGroup( 0, Infinity, 0 );
+                            child.geometry.addGroup( 0, Infinity, 1 );
+
+                            child.material.side = THREE.FrontSide;
+
+                            const innerMaterial = child.material.clone();
+                            innerMaterial.side = THREE.BackSide;
+
+                            child.material = [
+                                child.material,
+                                innerMaterial,
+                            ];
+
+                            child.geometry.groups[0].materialIndex = 0;
+                            child.geometry.groups[1].materialIndex = 1;
+
+                            child.needsUpdate = true;
                         }
                     });
 
@@ -342,7 +362,7 @@ class BoxVisualization {
         });
     }
 
-    loadTexture(url) {
+    loadOuterTexture(url) {
         if (!this._model)
             return Promise.reject(new Error("You should load model first."));
 
@@ -355,9 +375,47 @@ class BoxVisualization {
 
                     this._model.traverse(function (child) {
                         if (child.isMesh) {
-                            child.material.map = texture;
-                            child.material.map.needsUpdate = true;
-                            child.material.needsUpdate = true;
+                            child.material[0].map = texture;
+                            child.material[0].map.needsUpdate = true;
+                            child.material[0].needsUpdate = true;
+                            child.needsUpdate = true;
+                        }
+                    });
+
+                    EventEmitter.emitEvent('loaded', {})
+                    resolve(texture);
+                },
+                (xhr) => {
+                    if (xhr.total === 0) {
+                        EventEmitter.emitEvent('loading', {loaded: 0, total: 100});
+                    } else {
+                        EventEmitter.emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
+                    }
+                },
+                function (err) {
+                    console.error('Texture loading error.');
+                    reject(err);
+                }
+            );
+        });
+    }
+
+    loadInnerTexture(url) {
+        if (!this._model)
+            return Promise.reject(new Error("You should load model first."));
+
+        return new Promise((resolve, reject) => {
+            const textureLoader = new THREE.TextureLoader();
+
+            textureLoader.load(
+                url,
+                (texture) => {
+
+                    this._model.traverse((child) => {
+                        if (child.isMesh) {
+                            child.material[1].map = texture;
+                            child.material[1].map.needsUpdate = true;
+                            child.material[1].needsUpdate = true;
                             child.needsUpdate = true;
                         }
                     });
@@ -448,10 +506,14 @@ class BoxVisualization {
                         child.geometry.dispose();
 
                     if (child.material) {
-                        if (child.material.map)
-                            child.material.map.dispose();
+                        const materials = Array.isArray(child.material) ? child.material : [child.material];
 
-                        child.material.dispose();
+                        for (const material of materials) {
+                            if (material.map)
+                                material.map.dispose();
+
+                            material.dispose();
+                        }
                     }
                 })
             }
