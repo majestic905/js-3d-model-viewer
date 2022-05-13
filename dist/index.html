@@ -89,9 +89,14 @@
 
             <div class="center">
                 <label class="button">
-                    <input type="file" id="open-model-input"/>
+                    <input type="file" id="open-fbx-model-input"/>
                     <span class="material-icons">file_open</span>
                     Open FBX model
+                </label>
+                <label class="button">
+                    <input type="file" id="open-gltf-model-input"/>
+                    <span class="material-icons">file_open</span>
+                    Open GLTF model
                 </label>
                 <label class="button">
                     <input type="file" id="open-texture-input"/>
@@ -250,12 +255,25 @@
 
     const boxVis = new BoxVisualization({containerElementId: 'viewer'});
 
-    document.getElementById('open-model-input')
+    document.getElementById('open-fbx-model-input')
         .addEventListener('change', (ev) => {
             const uploadedFile = ev.target.files[0];
             const url = URL.createObjectURL(uploadedFile);
             boxVis.clearScene();
             boxVis.loadFBX(url)
+                .then(() => URL.revokeObjectURL(url))
+                .catch((err) => {
+                    console.error(err);
+                    URL.revokeObjectURL(url)
+                });
+        });
+
+    document.getElementById('open-gltf-model-input')
+        .addEventListener('change', (ev) => {
+            const uploadedFile = ev.target.files[0];
+            const url = URL.createObjectURL(uploadedFile);
+            boxVis.clearScene();
+            boxVis.loadGLTF(url)
                 .then(() => URL.revokeObjectURL(url))
                 .catch((err) => {
                     console.error(err);
@@ -323,12 +341,13 @@
     // ---------
 
     document.addEventListener('DOMContentLoaded', function() {
-        boxVis.loadFBX('./assets/sample_04.fbx')
-            .then(() => {
-                boxVis.controls.changeRotationSpeed(-0.5);
-                boxVis.animation.changeTimeScale(-0.5);
-                boxVis.changePullAnimationSpeed(-0.07);
-            })
+        boxVis.loadGLTF('./assets/Maybe2.gltf')
+            // .then(() => {
+            //     boxVis.controls.changeRotationSpeed(-0.5);
+            //     boxVis.animation.changeTimeScale(-0.5);
+            //     boxVis.changePullAnimationSpeed(-0.07);
+            // })
+            .then(() => boxVis.loadTexture('./assets/Maybe1_Material _49_BaseColor.png'))
             .catch(err => console.error(err));
     });
 </script>

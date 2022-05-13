@@ -16,6 +16,7 @@ import * as THREE from 'three';
 // import {WebGLRenderer} from "three/src/renderers/WebGLRenderer";
 
 import {FBXLoader} from 'three/examples/jsm/loaders/FBXLoader';
+import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
 import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 
@@ -34,7 +35,7 @@ class AnimationController {
             return;
 
         this._model = model;
-        this._mixer = new THREE.AnimationMixer(model);
+        this._mixer = new THREE.AnimationMixer(model.scene);
 
         this._action = this._mixer.clipAction(model.animations[0]);
         this._action.setLoop(THREE.LoopPingPong);
@@ -342,6 +343,46 @@ class BoxVisualization {
         });
     }
 
+    loadGLTF(url) {
+        if (this._sceneLocked)
+            return Promise.reject(new Error("Other model is already being loaded."));
+
+        this._sceneLocked = true;
+
+        return new Promise((resolve, reject) => {
+            const gltfLoader = new GLTFLoader();
+
+            gltfLoader.load(url,
+                (obj) => {
+                    console.log(obj);
+
+                    obj.scene.scale.set(200, 200, 200);
+
+                    this._scene.add(obj.scene);
+                    this._model = obj.scene;
+                    this._fitCameraToModel(obj.scene);
+                    this.animation.model = obj;
+                    this._sceneLocked = false;
+
+                    EventEmitter.emitEvent('loaded', {obj});
+                    resolve(obj);
+                },
+                (xhr) => {
+                    if (xhr.total === 0) {
+                        EventEmitter.emitEvent('loading', {loaded: 0, total: 100});
+                    } else {
+                        EventEmitter.emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
+                    }
+                },
+                (err) => {
+                    EventEmitter.emitEvent('error', {err});
+                    this._sceneLocked = false;
+                    reject(err);
+                }
+            );
+        });
+    }
+
     loadTexture(url) {
         if (!this._model)
             return Promise.reject(new Error("You should load model first."));
@@ -352,6 +393,8 @@ class BoxVisualization {
             textureLoader.load(
                 url,
                 (texture) => {
+
+                    texture.flipY = false;
 
                     this._model.traverse(function (child) {
                         if (child.isMesh) {
