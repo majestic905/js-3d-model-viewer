@@ -21,6 +21,12 @@ import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 // import {WebGLRenderer} from "three/src/renderers/WebGLRenderer";
 
 
+function getFileExtension(url) {
+    const dotPosition = url.lastIndexOf('.');
+    return dotPosition === -1 ? undefined : url.slice(dotPosition + 1);
+}
+
+
 class BoxVisualization {
     constructor({containerElementId}) {
         if (!containerElementId)
@@ -50,15 +56,11 @@ class BoxVisualization {
         this._scene = new THREE.Scene();
         this._scene.background = new THREE.Color(0xeeeeee);
 
-        this._camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 1500);
+        this._camera = new THREE.PerspectiveCamera(45, width / height, 100, 3000);
 
         this._controls = new OrbitControls(this._camera, this._renderer.domElement);
-        this._controls.minDistance = 10;
-        this._controls.maxDistance = 1000;
-
-        this._grid = new THREE.GridHelper(400, 20, 0x0000ff, 0x808080);
-        this._grid.material.opacity = 0.5;
-        this._scene.add(this._grid);
+        this._controls.minDistance = 250;
+        this._controls.maxDistance = 1500;
 
         // ---------------
 
@@ -81,6 +83,23 @@ class BoxVisualization {
         this._scene.add(hemiLight);
 
         this._lights = {keyLight, fillLight, backLight, ambient};
+
+        // ---------------
+
+        this._backLightHelper = new THREE.DirectionalLightHelper(backLight, 50, new THREE.Color(0,0,0));
+        this._keyLightHelper = new THREE.DirectionalLightHelper(keyLight, 50, new THREE.Color(0,0,0));
+        this._fillLightHelper = new THREE.DirectionalLightHelper(fillLight, 50, new THREE.Color(0,0,0));
+        this._hemiLightHelper = new THREE.HemisphereLightHelper( hemiLight, 50, new THREE.Color(0,0,0));
+        this._scene.add(this._backLightHelper);
+        this._scene.add(this._keyLightHelper);
+        this._scene.add(this._fillLightHelper);
+        this._scene.add(this._hemiLightHelper);
+
+        this._gridHelper = new THREE.GridHelper(800, 20, 0x0000ff, 0x808080);
+        this._gridHelper.material.opacity = 0.5;
+        this._scene.add(this._gridHelper);
+
+        this.toggleHelpers();  // turn off by default
 
         // ---------------
 
@@ -138,35 +157,25 @@ class BoxVisualization {
 
     // ---------
 
-    static getModelTypeFromFileExtension(url) {
-        const dotPosition = url.lastIndexOf('.');
-        return dotPosition === -1 ? undefined : url.slice(dotPosition + 1);
-    }
-
     loadModel(url) {
-        const modelType = BoxVisualization.getModelTypeFromFileExtension(url);
+        const extension = getFileExtension(url);
 
-        if (!modelType)
-            throw new Error('Cannot parse file extension.');
+        if (!extension || extension !== 'fbx')
+            return Promise.reject(new Error("File type must be an FBX model have .fbx extension."));
 
-        if (!['gltf', 'glb', 'fbx'].includes(modelType))
-            throw new Error('Only .gltf, .glb, .fbx extensions permitted.');
+        // -------------------
 
-        this._disposeAnimations();
-        return modelType === 'fbx' ? this._loadFBX(url) : this._loadGLTF(url);
-    }
-
-    _loadFBX(url) {
         if (this._sceneLocked)
             return Promise.reject(new Error("Other model is already being loaded."));
 
         this._sceneLocked = true;
 
-        return new Promise((resolve, reject) => {
-            const fbxLoader = new FBXLoader();
+        const fbxLoader = new FBXLoader();
 
+        return new Promise((resolve, reject) => {
             fbxLoader.load(url,
                 (obj) => {
+                    console.log(obj);
                     obj.traverse((child) => {
                         if (child.isMesh) {
                             child.castShadow = true;
@@ -174,59 +183,14 @@ class BoxVisualization {
                         }
                     });
 
-                    this._scene.add(obj);
                     this._model = obj;
+                    this._scene.add(obj);
                     this._fitCameraToModel();
+
+                    this._pullAnimationTargetPosition = this._model.position.clone();
+                    this.__pullAnimationTargetPosition = this._pullAnimationTargetPosition;
+
                     this._setupAnimation(obj, obj.animations);
-                    this._sceneLocked = false;
-
-                    console.log(obj.position);
-
-                    obj.position.set(0, 0, 0);
-
-                    console.log(obj);
-
-                    this._emitEvent('loaded', {obj});
-                    resolve(obj);
-                },
-                (xhr) => {
-                    if (xhr.total === 0) {
-                        this._emitEvent('loading', {loaded: 0, total: 100});
-                    } else {
-                        this._emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
-                    }
-                },
-                (err) => {
-                    this._emitEvent('error', {err});
-                    this._sceneLocked = false;
-                    reject(err);
-                }
-            );
-        });
-    }
-
-    _loadGLTF(url) {
-        if (this._sceneLocked)
-            return Promise.reject(new Error("Other model is already being loaded."));
-
-        this._sceneLocked = true;
-
-        return new Promise((resolve, reject) => {
-            const gltfLoader = new GLTFLoader();
-
-            gltfLoader.load(url,
-                (obj) => {
-                    obj.scene.traverse((child) => {
-                        if (child.isMesh) {
-                            child.castShadow = true;
-                            child.receiveShadow = true;
-                        }
-                    });
-
-                    this._scene.add(obj.scene);
-                    this._model = obj.scene;
-                    this._fitCameraToModel();
-                    this._setupAnimation(obj.scene, obj.animations);
                     this._sceneLocked = false;
 
                     this._emitEvent('loaded', {obj});
@@ -288,7 +252,7 @@ class BoxVisualization {
         });
     }
 
-    _fitCameraToModel() {
+    _fitCameraToModel() { // TODO: split/refactor method
         const boundingBox = new THREE.Box3();
         const size = new THREE.Vector3();
 
@@ -316,17 +280,14 @@ class BoxVisualization {
 
     // ---------
 
-    revealGrid() {
-        this._grid.visible = true;
-    }
+    toggleHelpers() {
+        this._gridHelper.visible = !this._gridHelper.visible;
+        this._backLightHelper.visible = !this._backLightHelper.visible;
+        this._keyLightHelper.visible = !this._keyLightHelper.visible;
+        this._fillLightHelper.visible = !this._fillLightHelper.visible;
+        this._hemiLightHelper.visible = !this._hemiLightHelper.visible;
 
-    hideGrid() {
-        this._grid.visible = false;
-    }
-
-    toggleGrid() {
-        this._grid.visible = !this._grid.visible;
-        return this._grid.visible;
+        return this._gridHelper.visible;
     }
 
     // ---------
@@ -345,7 +306,14 @@ class BoxVisualization {
         // properties of ev: type, action and loopDelta
         this._emitEvent('animationPaused');
         this._animationAction.paused = true;
-        this.moveModelToZero();
+
+        const position = this._model.position.clone().roundToZero();
+        if (position.equals(new THREE.Vector3(0, 0, 0)))
+            this._pullAnimationTargetPosition = this.__pullAnimationTargetPosition;
+        else
+            this._pullAnimationTargetPosition = new THREE.Vector3(0, 0, 0);
+
+        // this.moveModelToZero();
     }
 
     _disposeAnimations() {
@@ -420,16 +388,16 @@ class BoxVisualization {
         return value;
     }
 
-    changeControlsRotateSpeed(changeAmount) {
-        let value = this._controls.rotateSpeed + changeAmount;
+    changeControlsRotateSpeed(amount) {
+        let value = this._controls.rotateSpeed + amount;
         value = Math.max(0.2, value);
         value = Math.min(2, value);
         this._controls.rotateSpeed = value;
         return value;
     }
 
-    changePullAnimationSpeed(changeAmount) {
-        let value = this._pullAnimationSmoothness + changeAmount;
+    changePullAnimationSpeed(amount) {
+        let value = this._pullAnimationSmoothness + amount;
         value = Math.max(0.01, value);
         value = Math.min(1, value);
         this._pullAnimationSmoothness = value;

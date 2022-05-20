@@ -91,12 +91,7 @@
                 <label class="button">
                     <input type="file" id="open-fbx-model-input"/>
                     <span class="material-icons">file_open</span>
-                    Open FBX model
-                </label>
-                <label class="button">
-                    <input type="file" id="open-gltf-model-input"/>
-                    <span class="material-icons">file_open</span>
-                    Open GLTF model
+                    Open model
                 </label>
                 <label class="button">
                     <input type="file" id="open-texture-input"/>
@@ -110,9 +105,9 @@
                     <span class="material-icons">fullscreen</span>
                     Go fullscreen
                 </button>
-                <button class="button" id="toggle-grid-helper-button">
+                <button class="button" id="toggle-helpers-button">
                     <span class="material-icons">grid_off</span>
-                    Toggle grid helper
+                    Toggle helpers
                 </button>
             </div>
 
@@ -268,19 +263,6 @@
                 });
         });
 
-    document.getElementById('open-gltf-model-input')
-        .addEventListener('change', (ev) => {
-            const uploadedFile = ev.target.files[0];
-            const url = URL.createObjectURL(uploadedFile);
-            boxVis.clearScene();
-            boxVis.loadGLTF(url)
-                .then(() => URL.revokeObjectURL(url))
-                .catch((err) => {
-                    console.error(err);
-                    URL.revokeObjectURL(url)
-                });
-        });
-
     document.getElementById('open-texture-input')
         .addEventListener('change', (ev) => {
             const uploadedFile = ev.target.files[0];
@@ -296,10 +278,10 @@
     document.getElementById('fullscreen-button')
         .addEventListener('click', function () { boxVis.goFullScreen(viewerElement); });
 
-    const toggleGridHelperButton = document.getElementById('toggle-grid-helper-button');
-    toggleGridHelperButton.addEventListener('click', function() {
-        const isVisible = boxVis.toggleGrid();
-        toggleGridHelperButton.children[0].innerText = isVisible ? 'grid_on' : 'grid_off';
+    const toggleHelpersButton = document.getElementById('toggle-helpers-button');
+    toggleHelpersButton.addEventListener('click', function() {
+        const isVisible = boxVis.toggleHelpers();
+        toggleHelpersButton.children[0].innerText = isVisible ? 'grid_on' : 'grid_off';
     });
 
     document.getElementById('speed-up-animation-button')
