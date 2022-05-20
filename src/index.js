@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 
+import {FBXLoader} from 'three/examples/jsm/loaders/FBXLoader';
+import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
+
+// import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls';
 // import {AmbientLight} from "three/src/lights/AmbientLight";
 // import {AnimationMixer} from "three/src/animation/AnimationMixer";
 // import {Box3} from "three/src/math/Box3";
@@ -15,176 +20,6 @@ import * as THREE from 'three';
 // import {Vector3} from "three/src/math/Vector3";
 // import {WebGLRenderer} from "three/src/renderers/WebGLRenderer";
 
-import {FBXLoader} from 'three/examples/jsm/loaders/FBXLoader';
-import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
-import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls';
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
-
-
-class AnimationController {
-    constructor(model, onLoop) {
-        this._clock = new THREE.Clock();
-        this._onLoopCallback = onLoop;
-
-        if (model)
-            this._init(model);
-    }
-
-    _init(model) {
-        if (!model || !model.animations || model.animations.length === 0)
-            return;
-
-        this._model = model;
-        this._mixer = new THREE.AnimationMixer(model.scene);
-
-        this._action = this._mixer.clipAction(model.animations[0]);
-        this._action.setLoop(THREE.LoopPingPong);
-
-        this._mixer.addEventListener('loop', this._onLoop);
-    }
-
-    _onLoop = (ev) => {
-        // properties of ev: type, action and loopDelta
-        EventEmitter.emitEvent('animationPaused');
-        this._action.paused = true;
-        this._onLoopCallback();
-    }
-
-    _update() {
-        if (this._mixer) {
-            const delta = this._clock.getDelta();
-            this._mixer.update(delta);
-        }
-    }
-
-    set model(value) {
-        this.stop();
-
-        if (this._mixer) {
-            this._mixer.removeEventListener('loop', this._onLoop);
-            this._mixer.uncacheAction(this._action);
-        }
-
-        this._action = undefined;
-        this._mixer = undefined;
-        this._model = undefined;
-
-        this._init(value);
-    }
-
-    changeTimeScale(amount) {
-        if (!this._action)
-            return null;
-
-        let value = this._action.timeScale + amount;
-        value = Math.max(0.2, value);
-        value = Math.min(2, value);
-        this._action.timeScale = value;
-        return value;
-    }
-
-    pause() {
-        if (this._action && !this._action.paused) {
-            this._action.warp(this._action.timeScale, 0, 0.1);
-
-            EventEmitter.emitEvent('animationPaused');
-        }
-    }
-
-    play() {
-        if (this._action) {
-            EventEmitter.emitEvent('animationStarted');
-
-            if (this._action.paused) {
-                this._action.paused = false;
-                this._action.warp(0, this._action.timeScale, 0.1);
-            } else {
-                this._action.play();
-            }
-        }
-    }
-
-    stop() {
-        if (this._action) {
-            this._action.stop();
-
-            EventEmitter.emitEvent('animationStopped');
-        }
-    }
-}
-
-
-class Grid {
-    constructor(scene) {
-        if (!scene)
-            throw new Error("Scene must be provided");
-
-        this._grid = new THREE.GridHelper(400, 20, 0x0000ff, 0x808080);
-        this._grid.material.opacity = 0.5;
-        scene.add(this._grid);
-    }
-
-    reveal() {
-        this._grid.visible = true;
-    }
-
-    hide() {
-        this._grid.visible = false;
-    }
-
-    toggle() {
-        this._grid.visible = !this._grid.visible;
-        return this._grid.visible;
-    }
-}
-
-
-class Controls {
-    constructor(camera, renderer, params = {}) {
-        if (!camera || !renderer)
-            throw new Error("Controls: camera and renderer must be provided");
-
-        this._controls = new OrbitControls(camera, renderer.domElement);
-
-        const {minDistance = 100, maxDistance = 1000} = params;
-        this._controls.maxDistance = maxDistance;
-        this._controls.minDistance = minDistance;
-    }
-
-    changeRotationSpeed(changeAmount) {
-        let value = this._controls.rotateSpeed + changeAmount;
-        value = Math.max(0.2, value);
-        value = Math.min(2, value);
-        this._controls.rotateSpeed = value;
-        return value;
-    }
-}
-
-
-class ModelMovement {
-    static targetPosition = undefined;
-    static smoothness = 0.1;
-
-    static _update(model) {
-        if (ModelMovement.targetPosition)
-            model.position.lerp(ModelMovement.targetPosition, ModelMovement.smoothness);
-    }
-}
-
-
-class EventEmitter {
-    static containerElementId = undefined;
-    
-    static emitEvent(eventName, data = {}) {
-        const element = document.getElementById(EventEmitter.containerElementId);
-        if (!element)
-            return;
-        
-        const event = new window.CustomEvent(eventName, {detail: data});
-        element.dispatchEvent(event);
-    }
-}
-
 
 class BoxVisualization {
     constructor({containerElementId}) {
@@ -195,20 +30,6 @@ class BoxVisualization {
 
         if (!this._containerElement)
             throw new Error(`DOM element with id=${containerElementId} not found`);
-
-        EventEmitter.containerElementId = containerElementId;
-
-        this._camera = undefined;
-        this._scene = undefined;
-        this._lights = undefined;
-        this._renderer = undefined;
-        this._model = undefined;
-
-        this.controls = undefined;
-        this.animation = undefined;
-        this.grid = undefined;
-
-        this._sceneLocked = false;
 
         this.init();
         this.animate();
@@ -231,10 +52,13 @@ class BoxVisualization {
 
         this._camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 1500);
 
-        this.controls = new Controls(this._camera, this._renderer);
+        this._controls = new OrbitControls(this._camera, this._renderer.domElement);
+        this._controls.minDistance = 10;
+        this._controls.maxDistance = 1000;
 
-        this.grid = new Grid(this._scene);
-        this.grid.hide();
+        this._grid = new THREE.GridHelper(400, 20, 0x0000ff, 0x808080);
+        this._grid.material.opacity = 0.5;
+        this._scene.add(this._grid);
 
         // ---------------
 
@@ -260,14 +84,25 @@ class BoxVisualization {
 
         // ---------------
 
-        this.animation = new AnimationController(undefined, this.moveModelToZero);
+        this._animationMixer = undefined;  // not undefined when there is model in animation
+        this._animationAction = undefined;  // not undefined when there is model in animation
+        this._animationClock = new THREE.Clock();
 
-        this.animate();
+        // ---------------
 
-        window.addEventListener('resize', this.onWindowResize, false);
+        this._pullAnimationTargetPosition = undefined;  // animate centering the box after each model's animation loop
+        this._pullAnimationSmoothness = 0.1;
+
+        // ---------------
+
+        this._sceneLocked = false;  // true when model is loading
+
+        // ---------------
+
+        window.addEventListener('resize', this._onWindowResize, false);
     }
 
-    onWindowResize = () => {
+    _onWindowResize = () => {
         const isFullscreen = document.fullscreenElement !== null;
 
         const width = isFullscreen ? window.innerWidth : this._containerElement.offsetWidth;
@@ -280,26 +115,48 @@ class BoxVisualization {
     }
 
     animate = () => {
-        this.animation._update();
+        if (this._animationMixer) {
+            const delta = this._animationClock.getDelta();
+            this._animationMixer.update(delta);
+        }
 
-        ModelMovement._update(this._model);
+        if (this._pullAnimationTargetPosition)
+            this._model.position.lerp(this._pullAnimationTargetPosition, this._pullAnimationSmoothness);
 
         // trackball controls needs to be updated in the animation loop before it will work
-        // this.controls._update();
+        // this._controls.update();
 
         this._renderer.render(this._scene, this._camera);
 
         requestAnimationFrame(this.animate);
     }
 
-    // ---------
-
     _emitEvent(eventName, data = {}) {
         const event = new window.CustomEvent(eventName, {detail: data});
         this._containerElement.dispatchEvent(event);
     }
 
-    loadFBX(url) {
+    // ---------
+
+    static getModelTypeFromFileExtension(url) {
+        const dotPosition = url.lastIndexOf('.');
+        return dotPosition === -1 ? undefined : url.slice(dotPosition + 1);
+    }
+
+    loadModel(url) {
+        const modelType = BoxVisualization.getModelTypeFromFileExtension(url);
+
+        if (!modelType)
+            throw new Error('Cannot parse file extension.');
+
+        if (!['gltf', 'glb', 'fbx'].includes(modelType))
+            throw new Error('Only .gltf, .glb, .fbx extensions permitted.');
+
+        this._disposeAnimations();
+        return modelType === 'fbx' ? this._loadFBX(url) : this._loadGLTF(url);
+    }
+
+    _loadFBX(url) {
         if (this._sceneLocked)
             return Promise.reject(new Error("Other model is already being loaded."));
 
@@ -310,9 +167,8 @@ class BoxVisualization {
 
             fbxLoader.load(url,
                 (obj) => {
-
                     obj.traverse((child) => {
-                        if (child instanceof THREE.Mesh) {
+                        if (child.isMesh) {
                             child.castShadow = true;
                             child.receiveShadow = true;
                         }
@@ -320,22 +176,28 @@ class BoxVisualization {
 
                     this._scene.add(obj);
                     this._model = obj;
-                    this._fitCameraToModel(obj);
-                    this.animation.model = obj;
+                    this._fitCameraToModel();
+                    this._setupAnimation(obj, obj.animations);
                     this._sceneLocked = false;
 
-                    EventEmitter.emitEvent('loaded', {obj});
+                    console.log(obj.position);
+
+                    obj.position.set(0, 0, 0);
+
+                    console.log(obj);
+
+                    this._emitEvent('loaded', {obj});
                     resolve(obj);
                 },
                 (xhr) => {
                     if (xhr.total === 0) {
-                        EventEmitter.emitEvent('loading', {loaded: 0, total: 100});
+                        this._emitEvent('loading', {loaded: 0, total: 100});
                     } else {
-                        EventEmitter.emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
+                        this._emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
                     }
                 },
                 (err) => {
-                    EventEmitter.emitEvent('error', {err});
+                    this._emitEvent('error', {err});
                     this._sceneLocked = false;
                     reject(err);
                 }
@@ -343,7 +205,7 @@ class BoxVisualization {
         });
     }
 
-    loadGLTF(url) {
+    _loadGLTF(url) {
         if (this._sceneLocked)
             return Promise.reject(new Error("Other model is already being loaded."));
 
@@ -354,28 +216,31 @@ class BoxVisualization {
 
             gltfLoader.load(url,
                 (obj) => {
-                    console.log(obj);
-
-                    obj.scene.scale.set(200, 200, 200);
+                    obj.scene.traverse((child) => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
 
                     this._scene.add(obj.scene);
                     this._model = obj.scene;
-                    this._fitCameraToModel(obj.scene);
-                    this.animation.model = obj;
+                    this._fitCameraToModel();
+                    this._setupAnimation(obj.scene, obj.animations);
                     this._sceneLocked = false;
 
-                    EventEmitter.emitEvent('loaded', {obj});
+                    this._emitEvent('loaded', {obj});
                     resolve(obj);
                 },
                 (xhr) => {
                     if (xhr.total === 0) {
-                        EventEmitter.emitEvent('loading', {loaded: 0, total: 100});
+                        this._emitEvent('loading', {loaded: 0, total: 100});
                     } else {
-                        EventEmitter.emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
+                        this._emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
                     }
                 },
                 (err) => {
-                    EventEmitter.emitEvent('error', {err});
+                    this._emitEvent('error', {err});
                     this._sceneLocked = false;
                     reject(err);
                 }
@@ -393,26 +258,26 @@ class BoxVisualization {
             textureLoader.load(
                 url,
                 (texture) => {
-
-                    texture.flipY = false;
+                    // texture.flipY = false;
 
                     this._model.traverse(function (child) {
                         if (child.isMesh) {
-                            child.material.map = texture;
-                            child.material.map.needsUpdate = true;
+                            child.material = new THREE.MeshStandardMaterial({map: texture});
+                            // child.material.map = texture;
+                            // child.material.map.needsUpdate = true;
                             child.material.needsUpdate = true;
                             child.needsUpdate = true;
                         }
                     });
 
-                    EventEmitter.emitEvent('loaded', {})
+                    this._emitEvent('loaded', {})
                     resolve(texture);
                 },
                 (xhr) => {
                     if (xhr.total === 0) {
-                        EventEmitter.emitEvent('loading', {loaded: 0, total: 100});
+                        this._emitEvent('loading', {loaded: 0, total: 100});
                     } else {
-                        EventEmitter.emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
+                        this._emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
                     }
                 },
                 function (err) {
@@ -422,36 +287,6 @@ class BoxVisualization {
             );
         });
     }
-
-    // ---------
-
-    changePullAnimationSpeed(changeAmount) {
-        let value = ModelMovement.smoothness + changeAmount;
-        value = Math.max(0.01, value);
-        value = Math.min(1, value);
-        ModelMovement.smoothness = value;
-        return value;
-    }
-
-    moveModelToZero = () => {
-        const boundingBox = new THREE.Box3();
-        const center = new THREE.Vector3();
-
-        boundingBox.setFromObject(this._model);
-        boundingBox.getCenter(center);
-
-        // this._model.translateX(-center.x);
-        // this._model.translateY(-center.y);
-        // this._model.translateZ(-center.z);
-
-        ModelMovement.targetPosition = new THREE.Vector3(
-            this._model.position.x - center.x,
-            this._model.position.y - center.y,
-            this._model.position.z - center.z
-        );
-    }
-
-    // ---------
 
     _fitCameraToModel() {
         const boundingBox = new THREE.Box3();
@@ -479,8 +314,132 @@ class BoxVisualization {
         this._lights.backLight.position.set(z, 0, -z);
     }
 
+    // ---------
+
+    revealGrid() {
+        this._grid.visible = true;
+    }
+
+    hideGrid() {
+        this._grid.visible = false;
+    }
+
+    toggleGrid() {
+        this._grid.visible = !this._grid.visible;
+        return this._grid.visible;
+    }
+
+    // ---------
+
+    _setupAnimation(scene, animations) {
+        if (!scene || !animations || animations.length === 0)
+            return;
+
+        this._animationMixer = new THREE.AnimationMixer(scene);
+        this._animationAction = this._animationMixer.clipAction(animations[0]);
+        this._animationAction.setLoop(THREE.LoopPingPong);
+        this._animationMixer.addEventListener('loop', this._onAnimationLoop);
+    }
+
+    _onAnimationLoop = (ev) => {
+        // properties of ev: type, action and loopDelta
+        this._emitEvent('animationPaused');
+        this._animationAction.paused = true;
+        this.moveModelToZero();
+    }
+
+    _disposeAnimations() {
+        this.stopAnimation();
+
+        if (this._animationMixer) {
+            this._animationMixer.removeEventListener('loop', this._onAnimationLoop);
+            this._animationMixer.uncacheAction(this._animationAction);
+        }
+
+        this._animationAction = undefined;
+        this._animationMixer = undefined;
+    }
+
+    pauseAnimation() {
+        if (this._animationAction && !this._animationAction.paused) {
+            this._animationAction.warp(this._animationAction.timeScale, 0, 0.1);
+
+            this._emitEvent('animationPaused');
+        }
+    }
+
+    playAnimation() {
+        if (this._animationAction) {
+            this._emitEvent('animationStarted');
+
+            if (this._animationAction.paused) {
+                this._animationAction.paused = false;
+                this._animationAction.warp(0, this._animationAction.timeScale, 0.1);
+            } else {
+                this._animationAction.play();
+            }
+        }
+    }
+
+    stopAnimation() {
+        if (this._animationAction && this._animationAction) {
+            this._animationAction.stop();
+
+            this._emitEvent('animationStopped');
+        }
+    }
+
+    moveModelToZero = () => {
+        const boundingBox = new THREE.Box3();
+        const center = new THREE.Vector3();
+
+        boundingBox.setFromObject(this._model);
+        boundingBox.getCenter(center);
+
+        // this._model.translateX(-center.x);
+        // this._model.translateY(-center.y);
+        // this._model.translateZ(-center.z);
+
+        this._pullAnimationTargetPosition = new THREE.Vector3(
+            this._model.position.x - center.x,
+            this._model.position.y - center.y,
+            this._model.position.z - center.z
+        );
+    }
+
+    // ---------
+
+    changeAnimationTimeScale(amount) {
+        if (!this._animationAction)
+            return null;
+
+        let value = this._animationAction.timeScale + amount;
+        value = Math.max(0.2, value);
+        value = Math.min(2, value);
+        this._animationAction.timeScale = value;
+        return value;
+    }
+
+    changeControlsRotateSpeed(changeAmount) {
+        let value = this._controls.rotateSpeed + changeAmount;
+        value = Math.max(0.2, value);
+        value = Math.min(2, value);
+        this._controls.rotateSpeed = value;
+        return value;
+    }
+
+    changePullAnimationSpeed(changeAmount) {
+        let value = this._pullAnimationSmoothness + changeAmount;
+        value = Math.max(0.01, value);
+        value = Math.min(1, value);
+        this._pullAnimationSmoothness = value;
+        return value;
+    }
+
+    // ---------
+
     clearScene() {
-        this.animation.model = undefined;
+        this._disposeAnimations()
 
         for (const obj of this._scene.children) {
             if (obj.type === "Group") {

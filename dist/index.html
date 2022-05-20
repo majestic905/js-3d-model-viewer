@@ -225,9 +225,9 @@
     const playAnimationButton = document.getElementById('play-animation-button');
     const stopAnimationButton = document.getElementById('stop-animation-button');
 
-    const playAnimation = () => { boxVis.animation.play(); };
-    const pauseAnimation = () => { boxVis.animation.pause(); };
-    const stopAnimation = () => { boxVis.animation.stop(); };
+    const playAnimation = () => { boxVis.playAnimation(); };
+    const pauseAnimation = () => { boxVis.pauseAnimation(); };
+    const stopAnimation = () => { boxVis.stopAnimation(); };
 
     playAnimationButton.addEventListener('click', playAnimation);
     stopAnimationButton.addEventListener('click', stopAnimation);
@@ -298,19 +298,19 @@
 
     const toggleGridHelperButton = document.getElementById('toggle-grid-helper-button');
     toggleGridHelperButton.addEventListener('click', function() {
-        const isVisible = boxVis.grid.toggle();
+        const isVisible = boxVis.toggleGrid();
         toggleGridHelperButton.children[0].innerText = isVisible ? 'grid_on' : 'grid_off';
     });
 
     document.getElementById('speed-up-animation-button')
         .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.animation.changeTimeScale(0.1) * 100) / 100;
+            const currentValue = Math.round(boxVis.changeAnimationTimeScale(0.1) * 100) / 100;
             animationSpeedElement.innerHTML = currentValue.toString();
         });
 
     document.getElementById('slow-down-animation-button')
         .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.animation.changeTimeScale(-0.1) * 100) / 100;
+            const currentValue = Math.round(boxVis.changeAnimationTimeScale(-0.1) * 100) / 100;
             animationSpeedElement.innerHTML = currentValue.toString();
         });
 
@@ -328,26 +328,26 @@
 
     document.getElementById('speed-up-rotation-button')
         .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.controls.changeRotationSpeed(0.1) * 100) / 100;
+            const currentValue = Math.round(boxVis.changeControlsRotateSpeed(0.1) * 100) / 100;
             rotationSpeedElement.innerHTML = currentValue.toString();
         });
 
     document.getElementById('slow-down-rotation-button')
         .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.controls.changeRotationSpeed(-0.1) * 100) / 100;
+            const currentValue = Math.round(boxVis.changeControlsRotateSpeed(-0.1) * 100) / 100;
             rotationSpeedElement.innerHTML = currentValue.toString();
         });
 
     // ---------
 
     document.addEventListener('DOMContentLoaded', function() {
-        boxVis.loadGLTF('./assets/Maybe2.gltf')
+        boxVis.loadModel('./assets/FirstBox2604-1.fbx')
             // .then(() => {
-            //     boxVis.controls.changeRotationSpeed(-0.5);
-            //     boxVis.animation.changeTimeScale(-0.5);
+            //     boxVis.changeControlsRotateSpeed(-0.5);
+            //     boxVis.changeAnimationTimeScale(-0.5);
             //     boxVis.changePullAnimationSpeed(-0.07);
             // })
-            .then(() => boxVis.loadTexture('./assets/Maybe1_Material _49_BaseColor.png'))
+            .then(() => boxVis.loadTexture('./assets/Ns2604.png'))
             .catch(err => console.error(err));
     });
 </script>
