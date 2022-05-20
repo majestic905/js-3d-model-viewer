@@ -194,26 +194,27 @@
     const pullAnimationSpeedElement = document.getElementById('pull-animation-speed-value');
     const controlsTypeElement = document.getElementById('controls-type-value');
 
-    viewerElement.addEventListener('loading', function (event) {
-        const progress = Math.floor(100 * event.detail.loaded / event.detail.total);
+    const onLoading = (ev) => {
+        const progress = Math.floor(100 * ev.detail.loaded / ev.detail.total);
         loadingElement.innerHTML = 'Loading... ' + progress + '%';
         errorElement.innerHTML = '';
-    });
+    }
+    viewerElement.addEventListener('modelLoading', onLoading);
+    viewerElement.addEventListener('textureLoading', onLoading);
 
-    viewerElement.addEventListener('loaded', function () {
+    const onLoaded = () => {
         loadingElement.innerHTML = '';
         errorElement.innerHTML = '';
-    });
+    }
+    viewerElement.addEventListener('modelLoaded', onLoaded);
+    viewerElement.addEventListener('textureLoaded', onLoaded);
 
-    viewerElement.addEventListener('error', function (ev) {
+    const onLoadingError = (ev) => {
         loadingElement.innerHTML = '';
         errorElement.innerHTML = 'Error: ' + ev.detail.err.message;
-    });
-
-    viewerElement.addEventListener('error', function (ev) {
-        loadingElement.innerHTML = '';
-        errorElement.innerHTML = 'Error: ' + ev.detail.err.message;
-    });
+    }
+    viewerElement.addEventListener('modelLoadingError', onLoadingError);
+    viewerElement.addEventListener('textureLoadingError', onLoadingError);
 
     // ---------
 
@@ -324,11 +325,6 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         boxVis.loadModel('./assets/FirstBox2604-1.fbx')
-            // .then(() => {
-            //     boxVis.changeControlsRotateSpeed(-0.5);
-            //     boxVis.changeAnimationTimeScale(-0.5);
-            //     boxVis.changePullAnimationSpeed(-0.07);
-            // })
             .then(() => boxVis.loadTexture('./assets/Ns2604.png'))
             .catch(err => console.error(err));
     });

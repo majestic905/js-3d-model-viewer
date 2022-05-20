@@ -54,7 +54,7 @@ class BoxVisualization {
         // ---------------
 
         this._scene = new THREE.Scene();
-        this._scene.background = new THREE.Color(0xeeeeee);
+        this._scene.background = new THREE.Color(0xffffff);
 
         this._camera = new THREE.PerspectiveCamera(45, width / height, 100, 3000);
 
@@ -67,33 +67,7 @@ class BoxVisualization {
         const ambient = new THREE.AmbientLight(0xffffff, 1);
         this._scene.add(ambient);
 
-        const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
-        const keyLight = new THREE.DirectionalLight(new THREE.Color('#EEEEEE'), 0.3);
-        const fillLight = new THREE.DirectionalLight(new THREE.Color('#EEEEEE'), 0.2);
-        keyLight.position.set(-100, 0, 100);
-        fillLight.position.set(100, 0, 100);
-        backLight.position.set(100, 0, -100).normalize();
-        this._scene.add(keyLight);
-        this._scene.add(fillLight);
-        this._scene.add(backLight);
-
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.6);
-        hemiLight.groundColor.setHSL(0.095, 1, 0.95);
-        hemiLight.position.set(0, 500, 0);
-        this._scene.add(hemiLight);
-
-        this._lights = {keyLight, fillLight, backLight, ambient};
-
         // ---------------
-
-        this._backLightHelper = new THREE.DirectionalLightHelper(backLight, 50, new THREE.Color(0,0,0));
-        this._keyLightHelper = new THREE.DirectionalLightHelper(keyLight, 50, new THREE.Color(0,0,0));
-        this._fillLightHelper = new THREE.DirectionalLightHelper(fillLight, 50, new THREE.Color(0,0,0));
-        this._hemiLightHelper = new THREE.HemisphereLightHelper( hemiLight, 50, new THREE.Color(0,0,0));
-        this._scene.add(this._backLightHelper);
-        this._scene.add(this._keyLightHelper);
-        this._scene.add(this._fillLightHelper);
-        this._scene.add(this._hemiLightHelper);
 
         this._gridHelper = new THREE.GridHelper(800, 20, 0x0000ff, 0x808080);
         this._gridHelper.material.opacity = 0.5;
@@ -109,6 +83,12 @@ class BoxVisualization {
 
         // ---------------
 
+        // we initially position model so that its bottom side center is at (0, 0, 0) - when the box is assembled, it's perfectly at the center of view.
+        // when model loaded, it's unassembled and not in the center of the view.
+        // we then use boundingBox approach to center the model and save its centered position to this._modelPositions[0]
+        // so we have two positions in this._modelPositions - the first corresponds to unassembled state; the second one is zeros and corresponds to assembled state
+        // those positions are switched in this._onAnimationLoop based on rounding and compare with the this._modelPositions[1]
+        this._modelPositions = [undefined, new THREE.Vector3(0, 0, 0)];
         this._pullAnimationTargetPosition = undefined;  // animate centering the box after each model's animation loop
         this._pullAnimationSmoothness = 0.1;
 
@@ -167,7 +147,6 @@ class BoxVisualization {
 
         if (this._sceneLocked)
             return Promise.reject(new Error("Other model is already being loaded."));
-
         this._sceneLocked = true;
 
         const fbxLoader = new FBXLoader();
@@ -178,8 +157,9 @@ class BoxVisualization {
                     console.log(obj);
                     obj.traverse((child) => {
                         if (child.isMesh) {
-                            child.castShadow = true;
-                            child.receiveShadow = true;
+                            child.material = new THREE.MeshBasicMaterial();
+                            child.material.color.setHex(0xFFA500);
+                            child.material.needsUpdate = true;
                         }
                     });
 
@@ -187,24 +167,24 @@ class BoxVisualization {
                     this._scene.add(obj);
                     this._fitCameraToModel();
 
-                    this._pullAnimationTargetPosition = this._model.position.clone();
-                    this.__pullAnimationTargetPosition = this._pullAnimationTargetPosition;
+                    this._modelPositions[0] = this._model.position.clone();
+                    this._pullAnimationTargetPosition = this._modelPositions[0];
 
                     this._setupAnimation(obj, obj.animations);
                     this._sceneLocked = false;
 
-                    this._emitEvent('loaded', {obj});
+                    this._emitEvent('modelLoaded', {obj});
                     resolve(obj);
                 },
                 (xhr) => {
                     if (xhr.total === 0) {
-                        this._emitEvent('loading', {loaded: 0, total: 100});
+                        this._emitEvent('modelLoading', {loaded: 0, total: 100});
                     } else {
-                        this._emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
+                        this._emitEvent('modelLoading', {loaded: xhr.loaded, total: xhr.total});
                     }
                 },
                 (err) => {
-                    this._emitEvent('error', {err});
+                    this._emitEvent('modelLoadingError', {err});
                     this._sceneLocked = false;
                     reject(err);
                 }
@@ -216,36 +196,38 @@ class BoxVisualization {
         if (!this._model)
             return Promise.reject(new Error("You should load model first."));
 
+        if (this._sceneLocked)
+            return Promise.reject(new Error("Something other is already being loaded."));
+        this._sceneLocked = true;
+
         return new Promise((resolve, reject) => {
             const textureLoader = new THREE.TextureLoader();
 
             textureLoader.load(
                 url,
                 (texture) => {
-                    // texture.flipY = false;
-
                     this._model.traverse(function (child) {
                         if (child.isMesh) {
-                            child.material = new THREE.MeshStandardMaterial({map: texture});
-                            // child.material.map = texture;
-                            // child.material.map.needsUpdate = true;
+                            child.material.color.setHex(0xFFFFFF);
+                            child.material.map = texture;
                             child.material.needsUpdate = true;
-                            child.needsUpdate = true;
                         }
                     });
 
-                    this._emitEvent('loaded', {})
+                    this._sceneLocked = false;
+                    this._emitEvent('textureLoaded', {})
                     resolve(texture);
                 },
                 (xhr) => {
                     if (xhr.total === 0) {
-                        this._emitEvent('loading', {loaded: 0, total: 100});
+                        this._emitEvent('textureLoading', {loaded: 0, total: 100});
                     } else {
-                        this._emitEvent('loading', {loaded: xhr.loaded, total: xhr.total});
+                        this._emitEvent('textureLoading', {loaded: xhr.loaded, total: xhr.total});
                     }
                 },
-                function (err) {
-                    console.error('Texture loading error.');
+                (err) => {
+                    this._emitEvent('textureLoadingError', {err});
+                    this._sceneLocked = false;
                     reject(err);
                 }
             );
@@ -271,21 +253,12 @@ class BoxVisualization {
         const z = Math.max(cameraZ, size.z) * 1.5;
         this._camera.position.z = z;
         this._camera.updateProjectionMatrix();
-
-        // change lights position
-        this._lights.keyLight.position.set(-z, 0, z);
-        this._lights.fillLight.position.set(z, 0, z);
-        this._lights.backLight.position.set(z, 0, -z);
     }
 
     // ---------
 
     toggleHelpers() {
         this._gridHelper.visible = !this._gridHelper.visible;
-        this._backLightHelper.visible = !this._backLightHelper.visible;
-        this._keyLightHelper.visible = !this._keyLightHelper.visible;
-        this._fillLightHelper.visible = !this._fillLightHelper.visible;
-        this._hemiLightHelper.visible = !this._hemiLightHelper.visible;
 
         return this._gridHelper.visible;
     }
@@ -307,13 +280,8 @@ class BoxVisualization {
         this._emitEvent('animationPaused');
         this._animationAction.paused = true;
 
-        const position = this._model.position.clone().roundToZero();
-        if (position.equals(new THREE.Vector3(0, 0, 0)))
-            this._pullAnimationTargetPosition = this.__pullAnimationTargetPosition;
-        else
-            this._pullAnimationTargetPosition = new THREE.Vector3(0, 0, 0);
-
-        // this.moveModelToZero();
+        const index = this._model.position.clone().roundToZero().equals(this._modelPositions[1]) ? 0 : 1;
+        this._pullAnimationTargetPosition = this._modelPositions[index];
     }
 
     _disposeAnimations() {
@@ -355,24 +323,6 @@ class BoxVisualization {
 
             this._emitEvent('animationStopped');
         }
-    }
-
-    moveModelToZero = () => {
-        const boundingBox = new THREE.Box3();
-        const center = new THREE.Vector3();
-
-        boundingBox.setFromObject(this._model);
-        boundingBox.getCenter(center);
-
-        // this._model.translateX(-center.x);
-        // this._model.translateY(-center.y);
-        // this._model.translateZ(-center.z);
-
-        this._pullAnimationTargetPosition = new THREE.Vector3(
-            this._model.position.x - center.x,
-            this._model.position.y - center.y,
-            this._model.position.z - center.z
-        );
     }
 
     // ---------
