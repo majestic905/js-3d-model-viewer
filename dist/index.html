@@ -20,14 +20,14 @@
 
         main {
             margin: 2em auto 0 auto;
-            max-width: 1600px;
-            width: 1600px;
+            max-width: 1200px;
+            width: 1200px;
             display: flex;
         }
 
         #viewer {
             height: 600px;
-            width: 1000px;
+            width: 800px;
             margin-right: 1em;
             box-shadow: 0 0 2px 1px rgba(0, 0, 0, 1);
         }
@@ -47,6 +47,9 @@
             display: inline-block;
             font-size: 14px;
             text-transform: uppercase;
+        }
+        .button-sm {
+            padding: 0.2em 0.6em;
         }
 
         .center {
@@ -69,6 +72,10 @@
         .material-icons {
             vertical-align: bottom;
             font-size: 20px;
+        }
+
+        .mr-4 {
+            margin-right: 0.4rem;
         }
     </style>
 </head>
@@ -101,9 +108,9 @@
             </div>
 
             <div class="center">
-                <button class="button" id="fullscreen-button">
-                    <span class="material-icons">fullscreen</span>
-                    Go fullscreen
+                <button class="button" id="toggle-pan-button">
+                    <span class="material-icons">do_not_touch</span>
+                    Toggle pan
                 </button>
                 <button class="button" id="toggle-helpers-button">
                     <span class="material-icons">grid_off</span>
@@ -112,9 +119,17 @@
             </div>
 
             <div class="center">
-                <hr/>
-                <h3>Loop Animation</h3>
+                <button class="button" id="load-texture-button">
+                    <span class="material-icons">wallpaper</span>
+                    Load texture
+                </button>
+                <button class="button" id="fullscreen-button">
+                    <span class="material-icons">fullscreen</span>
+                    Go fullscreen
+                </button>
+            </div>
 
+            <div class="center">
                 <button class="button" id="play-animation-button">
                     <span class="material-icons">play_arrow</span>
                     <span>Play</span>
@@ -126,65 +141,46 @@
             </div>
 
             <div class="center">
-                <button class="button" id="speed-up-animation-button">
-                    <span class="material-icons">keyboard_double_arrow_up</span>
-                    Speed up
-                </button>
-                <button class="button" id="slow-down-animation-button">
-                    <span class="material-icons">keyboard_double_arrow_down</span>
-                    Slow down
-                </button>
-                <p>
-                    Current loop animation speed: <span id="animation-speed-value">0.5</span>
-                </p>
-            </div>
-
-            <div class="center">
                 <hr/>
-                <h3>Pull Animation</h3>
-
-                <button class="button" id="speed-up-pull-animation-button">
+                <span class="mr-4">Loop animation speed: <span id="animation-speed-value">1</span></span>
+                <button class="button button-sm" id="speed-up-animation-button">
                     <span class="material-icons">keyboard_double_arrow_up</span>
-                    Speed up
                 </button>
-                <button class="button" id="slow-down-pull-animation-button">
+                <button class="button button-sm" id="slow-down-animation-button">
                     <span class="material-icons">keyboard_double_arrow_down</span>
-                    Speed down
                 </button>
-                <p>
-                    Current pull animation speed: <span id="pull-animation-speed-value">0.03</span>
-                </p>
             </div>
 
-            <hr/>
+            <div class="center">
+                <span class="mr-4">Pull animation speed: <span id="pull-animation-speed-value">0.2</span></span>
+                <button class="button button-sm" id="speed-up-pull-animation-button">
+                    <span class="material-icons">keyboard_double_arrow_up</span>
+                </button>
+                <button class="button button-sm" id="slow-down-pull-animation-button">
+                    <span class="material-icons">keyboard_double_arrow_down</span>
+                </button>
+            </div>
 
             <div class="center">
-                <button class="button" id="speed-up-rotation-button">
+                <span class="mr-4">Rotation speed: <span id="rotation-speed-value">1</span></span>
+                <button class="button button-sm" id="speed-up-rotation-button">
                     <span class="material-icons">keyboard_double_arrow_up</span>
-                    Rotation speed up
                 </button>
-                <button class="button" id="slow-down-rotation-button">
+                <button class="button button-sm" id="slow-down-rotation-button">
                     <span class="material-icons">keyboard_double_arrow_down</span>
-                    Rotation slow down
                 </button>
-                <p>
-                    Current rotation speed: <span id="rotation-speed-value">0.5</span>
-                </p>
             </div>
         </div>
     </main>
-
-    <footer class="center footer">
-        <a href="https://github.com/majestic905/js-3d-model-viewer" target="_blank" rel="nofollow noopener noreferrer">
-            See sources on Github
-        </a>
-    </footer>
 </div>
 
 <script src="js-3d-model-viewer.js"></script>
 
 <script>
     const {BoxVisualization} = this['js-3d-model-viewer'];
+
+    const MODEL_URL = './assets/FirstBox2604-1.fbx';
+    const TEXTURE_URL = './assets/Ns2604.png';
 
     const loadingElement = document.getElementById('loading');
     const errorElement = document.getElementById('error');
@@ -276,14 +272,27 @@
                 });
         });
 
-    document.getElementById('fullscreen-button')
-        .addEventListener('click', function () { boxVis.goFullScreen(viewerElement); });
-
     const toggleHelpersButton = document.getElementById('toggle-helpers-button');
     toggleHelpersButton.addEventListener('click', function() {
         const isVisible = boxVis.toggleHelpers();
         toggleHelpersButton.children[0].innerText = isVisible ? 'grid_on' : 'grid_off';
     });
+
+    const togglePanButton = document.getElementById('toggle-pan-button');
+    togglePanButton.addEventListener('click', function() {
+        const isEnabled = boxVis.togglePan();
+        togglePanButton.children[0].innerText = isEnabled ? 'pan_tool' : 'do_not_touch';
+    });
+
+    document.getElementById('load-texture-button')
+        .addEventListener('click', function () {
+            boxVis.loadTexture(TEXTURE_URL).catch(error => console.error(error));
+    });
+
+    document.getElementById('fullscreen-button')
+        .addEventListener('click', function () {
+            boxVis.goFullScreen(viewerElement);
+        });
 
     document.getElementById('speed-up-animation-button')
         .addEventListener('click', function() {
@@ -324,8 +333,7 @@
     // ---------
 
     document.addEventListener('DOMContentLoaded', function() {
-        boxVis.loadModel('./assets/FirstBox2604-1.fbx')
-            .then(() => boxVis.loadTexture('./assets/Ns2604.png'))
+        boxVis.loadModel(MODEL_URL)
             .catch(err => console.error(err));
     });
 </script>

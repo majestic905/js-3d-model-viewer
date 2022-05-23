@@ -37,11 +37,11 @@ class BoxVisualization {
         if (!this._containerElement)
             throw new Error(`DOM element with id=${containerElementId} not found`);
 
-        this.init();
-        this.animate();
+        this._init();
+        this._animate();
     }
 
-    init() {
+    _init() {
         const {offsetWidth: width, offsetHeight: height} = this._containerElement;
 
         this._renderer = new THREE.WebGLRenderer({antialias: true});
@@ -54,20 +54,44 @@ class BoxVisualization {
         // ---------------
 
         this._scene = new THREE.Scene();
-        this._scene.background = new THREE.Color(0xffffff);
+        this._scene.background = new THREE.Color(0xFFFFFF);
 
-        this._camera = new THREE.PerspectiveCamera(45, width / height, 100, 3000);
+        this._camera = new THREE.PerspectiveCamera(45, width / height, 25, 3000);
 
         this._controls = new OrbitControls(this._camera, this._renderer.domElement);
-        this._controls.minDistance = 250;
+        this._controls.minDistance = 250;  // will be changed after model load
         this._controls.maxDistance = 1500;
+        this._controls.enablePan = false;
+
+        // -------------
+
+        const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        const keyLight = new THREE.DirectionalLight(new THREE.Color('#FFFFFF'), 0.3);
+        const fillLight = new THREE.DirectionalLight(new THREE.Color('#FFFFFF'), 0.3);
+        keyLight.position.set(-100, 0, 100);
+        fillLight.position.set(100, 0, 100);
+        backLight.position.set(100, 0, -100).normalize();
+        this._scene.add(keyLight);
+        this._scene.add(fillLight);
+        this._scene.add(backLight);
+
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.5);
+        hemiLight.groundColor.setHSL(0.095, 1, 0.95);
+        hemiLight.position.set(0, 500, 0);
+        this._scene.add(hemiLight);
+
+        this._lights = {keyLight, fillLight, backLight};
 
         // ---------------
 
-        const ambient = new THREE.AmbientLight(0xffffff, 1);
-        this._scene.add(ambient);
-
-        // ---------------
+        this._backLightHelper = new THREE.DirectionalLightHelper(backLight, 50, new THREE.Color(0,0,0));
+        this._keyLightHelper = new THREE.DirectionalLightHelper(keyLight, 50, new THREE.Color(0,0,0));
+        this._fillLightHelper = new THREE.DirectionalLightHelper(fillLight, 50, new THREE.Color(0,0,0));
+        this._hemiLightHelper = new THREE.HemisphereLightHelper( hemiLight, 50, new THREE.Color(0,0,0));
+        this._scene.add(this._backLightHelper);
+        this._scene.add(this._keyLightHelper);
+        this._scene.add(this._fillLightHelper);
+        this._scene.add(this._hemiLightHelper);
 
         this._gridHelper = new THREE.GridHelper(800, 20, 0x0000ff, 0x808080);
         this._gridHelper.material.opacity = 0.5;
@@ -90,7 +114,7 @@ class BoxVisualization {
         // those positions are switched in this._onAnimationLoop based on rounding and compare with the this._modelPositions[1]
         this._modelPositions = [undefined, new THREE.Vector3(0, 0, 0)];
         this._pullAnimationTargetPosition = undefined;  // animate centering the box after each model's animation loop
-        this._pullAnimationSmoothness = 0.1;
+        this._pullAnimationSmoothness = 0.2;
 
         // ---------------
 
@@ -113,7 +137,7 @@ class BoxVisualization {
         this._renderer.setSize(width, height);
     }
 
-    animate = () => {
+    _animate = () => {
         if (this._animationMixer) {
             const delta = this._animationClock.getDelta();
             this._animationMixer.update(delta);
@@ -127,7 +151,7 @@ class BoxVisualization {
 
         this._renderer.render(this._scene, this._camera);
 
-        requestAnimationFrame(this.animate);
+        requestAnimationFrame(this._animate);
     }
 
     _emitEvent(eventName, data = {}) {
@@ -154,12 +178,9 @@ class BoxVisualization {
         return new Promise((resolve, reject) => {
             fbxLoader.load(url,
                 (obj) => {
-                    console.log(obj);
                     obj.traverse((child) => {
                         if (child.isMesh) {
-                            child.material = new THREE.MeshBasicMaterial();
-                            child.material.color.setHex(0xFFA500);
-                            child.material.needsUpdate = true;
+                            child.material = new THREE.MeshPhongMaterial();
                         }
                     });
 
@@ -208,6 +229,7 @@ class BoxVisualization {
                 (texture) => {
                     this._model.traverse(function (child) {
                         if (child.isMesh) {
+                            child.material = new THREE.MeshBasicMaterial();
                             child.material.color.setHex(0xFFFFFF);
                             child.material.map = texture;
                             child.material.needsUpdate = true;
@@ -250,17 +272,22 @@ class BoxVisualization {
         // change camera position
         const fov = this._camera.fov;
         const cameraZ = Math.abs(size.y / 2 * Math.tan(fov * 2));
-        const z = Math.max(cameraZ, size.z) * 1.5;
-        this._camera.position.z = z;
-        this._camera.updateProjectionMatrix();
-    }
+        const z = Math.max(cameraZ, size.z);
+        this._camera.position.set(-z, z, z);
+        this._camera.lookAt(new THREE.Vector3(0, 0, 0));
 
-    // ---------
+        // change lights position
+        this._lights.keyLight.position.set(-z, 0, z);
+        this._lights.fillLight.position.set(z, 0, z);
+        this._lights.backLight.position.set(z, 0, -z);
 
-    toggleHelpers() {
-        this._gridHelper.visible = !this._gridHelper.visible;
-
-        return this._gridHelper.visible;
+        boundingBox.setFromObject(this._model);
+        boundingBox.getSize(size);
+        console.log(boundingBox, size);
+        // set controls minDistance - half the size + something (depends on camera's near attribute)
+        const maxLen = Math.max(size.x, size.y, size.z);
+        this._controls.minDistance = Math.trunc(maxLen / 2 + 75);
+        console.log(this._controls.minDistance);
     }
 
     // ---------
@@ -327,6 +354,30 @@ class BoxVisualization {
 
     // ---------
 
+    clearScene() {
+        this._disposeAnimations()
+
+        for (const obj of this._scene.children) {
+            if (obj.type === "Group") {
+                this._scene.remove(obj);
+
+                obj.traverse(child => {
+                    if (child.geometry)
+                        child.geometry.dispose();
+
+                    if (child.material) {
+                        if (child.material.map)
+                            child.material.map.dispose();
+
+                        child.material.dispose();
+                    }
+                })
+            }
+        }
+    }
+
+    // ---------
+
     changeAnimationTimeScale(amount) {
         if (!this._animationAction)
             return null;
@@ -354,29 +405,22 @@ class BoxVisualization {
         return value;
     }
 
-    // ---------
-
-    clearScene() {
-        this._disposeAnimations()
-
-        for (const obj of this._scene.children) {
-            if (obj.type === "Group") {
-                this._scene.remove(obj);
-
-                obj.traverse(child => {
-                    if (child.geometry)
-                        child.geometry.dispose();
-
-                    if (child.material) {
-                        if (child.material.map)
-                            child.material.map.dispose();
-
-                        child.material.dispose();
-                    }
-                })
-            }
-        }
+    togglePan() {
+        this._controls.enablePan = !this._controls.enablePan;
+        return this._controls.enablePan;
     }
+
+    toggleHelpers() {
+        this._gridHelper.visible = !this._gridHelper.visible;
+        this._backLightHelper.visible = !this._backLightHelper.visible;
+        this._keyLightHelper.visible = !this._keyLightHelper.visible;
+        this._fillLightHelper.visible = !this._fillLightHelper.visible;
+        this._hemiLightHelper.visible = !this._hemiLightHelper.visible;
+
+        return this._gridHelper.visible;
+    }
+
+    // ---------
 
     goFullScreen() {
         if (document.fullscreenEnabled && !document.fullscreenElement)
