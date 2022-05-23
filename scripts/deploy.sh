@@ -1,4 +1,4 @@
-webpack
+npm run build
 sed -i -e 's/viewer\.js/viewer\.min\.js/g' dist/index.html
 firebase deploy --only hosting
 
