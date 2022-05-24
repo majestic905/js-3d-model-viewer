@@ -252,7 +252,7 @@
             const uploadedFile = ev.target.files[0];
             const url = URL.createObjectURL(uploadedFile);
             boxVis.clearScene();
-            boxVis.loadFBX(url)
+            boxVis.loadModel(url)
                 .then(() => URL.revokeObjectURL(url))
                 .catch((err) => {
                     console.error(err);
