@@ -210,6 +210,7 @@ class BoxVisualization {
                     reject(err);
                 }
             );
+            this._emitEvent('modelLoading', {loaded: 0, total: 100});
         });
     }
 
@@ -253,6 +254,7 @@ class BoxVisualization {
                     reject(err);
                 }
             );
+            this._emitEvent('textureLoading', {loaded: 0, total: 100});
         });
     }
 
@@ -281,13 +283,9 @@ class BoxVisualization {
         this._lights.fillLight.position.set(z, 0, z);
         this._lights.backLight.position.set(z, 0, -z);
 
-        boundingBox.setFromObject(this._model);
-        boundingBox.getSize(size);
-        console.log(boundingBox, size);
         // set controls minDistance - half the size + something (depends on camera's near attribute)
         const maxLen = Math.max(size.x, size.y, size.z);
         this._controls.minDistance = Math.trunc(maxLen / 2 + 75);
-        console.log(this._controls.minDistance);
     }
 
     // ---------
@@ -418,13 +416,6 @@ class BoxVisualization {
         this._hemiLightHelper.visible = !this._hemiLightHelper.visible;
 
         return this._gridHelper.visible;
-    }
-
-    // ---------
-
-    goFullScreen() {
-        if (document.fullscreenEnabled && !document.fullscreenElement)
-            this._containerElement.requestFullscreen();
     }
 }
 

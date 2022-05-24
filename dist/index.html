@@ -291,7 +291,8 @@
 
     document.getElementById('fullscreen-button')
         .addEventListener('click', function () {
-            boxVis.goFullScreen(viewerElement);
+            if (document.fullscreenEnabled && !document.fullscreenElement)
+                viewerElement.requestFullscreen();
         });
 
     document.getElementById('speed-up-animation-button')
