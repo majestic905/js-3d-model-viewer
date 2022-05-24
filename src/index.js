@@ -21,11 +21,6 @@ import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 // import {WebGLRenderer} from "three/src/renderers/WebGLRenderer";
 
 
-function getFileExtension(url) {
-    const dotPosition = url.lastIndexOf('.');
-    return dotPosition === -1 ? undefined : url.slice(dotPosition + 1);
-}
-
 
 class BoxVisualization {
     constructor({containerElementId}) {
@@ -162,13 +157,6 @@ class BoxVisualization {
     // ---------
 
     loadModel(url) {
-        const extension = getFileExtension(url);
-
-        if (!extension || extension !== 'fbx')
-            return Promise.reject(new Error("File type must be an FBX model have .fbx extension."));
-
-        // -------------------
-
         if (this._sceneLocked)
             return Promise.reject(new Error("Other model is already being loaded."));
         this._sceneLocked = true;
