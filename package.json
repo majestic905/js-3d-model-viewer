@@ -14,9 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "static-server": "^2.2.1",
-    "three": "^0.139.2",
-    "three-obj-mtl-loader": "1.0.3",
-    "three-orbit-controls": "^82.1.0"
+    "three": "^0.141.0"
   },
   "devDependencies": {
     "@babel/core": "^7.17.8",
