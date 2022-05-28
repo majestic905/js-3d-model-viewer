@@ -51,7 +51,7 @@ class BoxVisualization {
         this._scene = new THREE.Scene();
         this._scene.background = new THREE.Color(0xFFFFFF);
 
-        this._camera = new THREE.PerspectiveCamera(45, width / height, 25, 3000);
+        this._camera = new THREE.PerspectiveCamera(45, width / height, 25, 2500);
 
         this._controls = new OrbitControls(this._camera, this._renderer.domElement);
         this._controls.minDistance = 250;  // will be changed after model load
@@ -88,7 +88,7 @@ class BoxVisualization {
         this._scene.add(this._fillLightHelper);
         this._scene.add(this._hemiLightHelper);
 
-        this._gridHelper = new THREE.GridHelper(800, 20, 0x0000ff, 0x808080);
+        this._gridHelper = new THREE.GridHelper(1000, 20, 0x0000ff, 0x808080);
         this._gridHelper.material.opacity = 0.5;
         this._scene.add(this._gridHelper);
 
@@ -174,6 +174,7 @@ class BoxVisualization {
 
                     this._model = obj;
                     this._scene.add(obj);
+                    this._scaleModel();
                     this._fitCameraToModel();
 
                     this._modelPositions[0] = this._model.position.clone();
@@ -246,6 +247,17 @@ class BoxVisualization {
         });
     }
 
+    _scaleModel() {
+        const boundingBox = new THREE.Box3();
+        const size = new THREE.Vector3();
+
+        boundingBox.setFromObject(this._model);
+        boundingBox.getSize(size);
+
+        const scale = 1000 / Math.max(size.x, size.z);
+        this._model.scale.set(scale, scale, scale);
+    }
+
     _fitCameraToModel() { // TODO: split/refactor method
         const boundingBox = new THREE.Box3();
         const size = new THREE.Vector3();
@@ -261,15 +273,17 @@ class BoxVisualization {
 
         // change camera position
         const fov = this._camera.fov;
-        const cameraZ = Math.abs(size.y / 2 * Math.tan(fov * 2));
-        const z = Math.max(cameraZ, size.z);
-        this._camera.position.set(-z, z, z);
+        const cameraX = Math.abs(size.x / 2 * Math.tan(fov * 2));
+        // when using ._scaleModel(), this will (almost?) always be 1000 (factor from that method)
+        // and (probably?)can be discarded by using constant
+        const x = Math.max(cameraX, size.x);
+        this._camera.position.set(-x, x, x);
         this._camera.lookAt(new THREE.Vector3(0, 0, 0));
 
         // change lights position
-        this._lights.keyLight.position.set(-z, 0, z);
-        this._lights.fillLight.position.set(z, 0, z);
-        this._lights.backLight.position.set(z, 0, -z);
+        this._lights.keyLight.position.set(-x, 0, x);
+        this._lights.fillLight.position.set(x, 0, x);
+        this._lights.backLight.position.set(x, 0, -x);
 
         // set controls minDistance - half the size + something (depends on camera's near attribute)
         const maxLen = Math.max(size.x, size.y, size.z);
