@@ -1,27 +1,32 @@
-import * as THREE from 'three';
+class Helpers {
+    constructor(scene, lights) {
+        this._backLightHelper = new THREE.DirectionalLightHelper(lights.backLight, 50, new THREE.Color(0,0,0));
+        this._keyLightHelper = new THREE.DirectionalLightHelper(lights.keyLight, 50, new THREE.Color(0,0,0));
+        this._fillLightHelper = new THREE.DirectionalLightHelper(lights.fillLight, 50, new THREE.Color(0,0,0));
+        this._hemiLightHelper = new THREE.HemisphereLightHelper(lights.hemiLight, 50, new THREE.Color(0,0,0));
+        scene.add(this._backLightHelper);
+        scene.add(this._keyLightHelper);
+        scene.add(this._fillLightHelper);
+        scene.add(this._hemiLightHelper);
 
-import {FBXLoader} from 'three/examples/jsm/loaders/FBXLoader';
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
+        this._gridHelper = new THREE.GridHelper(1000, 20, 0x0000ff, 0x808080);
+        this._gridHelper.material.opacity = 0.5;
+        scene.add(this._gridHelper);
+    }
 
-// import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls';
-// import {AmbientLight} from "three/src/lights/AmbientLight";
-// import {AnimationMixer} from "three/src/animation/AnimationMixer";
-// import {Box3} from "three/src/math/Box3";
-// import {Clock} from "three/src/core/Clock";
-// import {Color} from "three/src/math/Color";
-// import {DirectionalLight} from "three/src/lights/DirectionalLight";
-// import {HemisphereLight} from "three/src/lights/HemisphereLight";
-// import {LoopPingPong} from "three/src/constants";
-// import {Mesh} from "three/src/objects/Mesh";
-// import {PerspectiveCamera} from "three/src/cameras/PerspectiveCamera.js";
-// import {Scene} from "three/src/scenes/Scene";
-// import {TextureLoader} from "three/src/loaders/TextureLoader";
-// import {Vector3} from "three/src/math/Vector3";
-// import {WebGLRenderer} from "three/src/renderers/WebGLRenderer";
+    toggle() {
+        this._gridHelper.visible = !this._gridHelper.visible;
+        this._backLightHelper.visible = !this._backLightHelper.visible;
+        this._keyLightHelper.visible = !this._keyLightHelper.visible;
+        this._fillLightHelper.visible = !this._fillLightHelper.visible;
+        this._hemiLightHelper.visible = !this._hemiLightHelper.visible;
+
+        return this._gridHelper.visible;
+    }
+}
 
 
-
-class BoxVisualization {
+class Viewer {
     constructor({containerElementId}) {
         if (!containerElementId)
             throw new Error("You must provide containerElementId");
@@ -52,7 +57,7 @@ class BoxVisualization {
 
         this._camera = new THREE.PerspectiveCamera(45, width / height, 25, 2500);
 
-        this._controls = new OrbitControls(this._camera, this._renderer.domElement);
+        this._controls = new THREE.OrbitControls(this._camera, this._renderer.domElement);
         this._controls.minDistance = 250;  // will be changed after model load
         this._controls.maxDistance = 2000;
         this._controls.enablePan = false;
@@ -74,23 +79,11 @@ class BoxVisualization {
         hemiLight.position.set(0, 500, 0);
         this._scene.add(hemiLight);
 
-        this._lights = {keyLight, fillLight, backLight};
+        this._lights = {keyLight, fillLight, backLight, hemiLight};
 
         // ---------------
 
-        this._backLightHelper = new THREE.DirectionalLightHelper(backLight, 50, new THREE.Color(0,0,0));
-        this._keyLightHelper = new THREE.DirectionalLightHelper(keyLight, 50, new THREE.Color(0,0,0));
-        this._fillLightHelper = new THREE.DirectionalLightHelper(fillLight, 50, new THREE.Color(0,0,0));
-        this._hemiLightHelper = new THREE.HemisphereLightHelper( hemiLight, 50, new THREE.Color(0,0,0));
-        this._scene.add(this._backLightHelper);
-        this._scene.add(this._keyLightHelper);
-        this._scene.add(this._fillLightHelper);
-        this._scene.add(this._hemiLightHelper);
-
-        this._gridHelper = new THREE.GridHelper(1000, 20, 0x0000ff, 0x808080);
-        this._gridHelper.material.opacity = 0.5;
-        this._scene.add(this._gridHelper);
-
+        this._helpers = new Helpers(this._scene, this._lights);
         this.toggleHelpers();  // turn off by default
 
         // ---------------
@@ -141,7 +134,7 @@ class BoxVisualization {
             this._model.position.lerp(this._pullAnimationTargetPosition, this._pullAnimationSmoothness);
 
         // trackball controls needs to be updated in the animation loop before it will work
-        // this._controls.update();
+        this._controls.update();
 
         this._renderer.render(this._scene, this._camera);
 
@@ -160,7 +153,7 @@ class BoxVisualization {
             return Promise.reject(new Error("Other model is already being loaded."));
         this._sceneLocked = true;
 
-        const fbxLoader = new FBXLoader();
+        const fbxLoader = new THREE.FBXLoader();
 
         return new Promise((resolve, reject) => {
             fbxLoader.load(url,
@@ -258,6 +251,8 @@ class BoxVisualization {
     }
 
     _fitCameraToModel() { // TODO: split/refactor method
+        console.log('before', this._model.position, this._camera.position);
+
         const boundingBox = new THREE.Box3();
         const size = new THREE.Vector3();
 
@@ -287,6 +282,8 @@ class BoxVisualization {
         // set controls minDistance - half the size + something (depends on camera's near attribute)
         const maxLen = Math.max(size.x, size.y, size.z);
         this._controls.minDistance = Math.trunc(maxLen / 2 + 75);
+
+        console.log('after', this._model.position, this._camera.position);
     }
 
     // ---------
@@ -410,15 +407,13 @@ class BoxVisualization {
     }
 
     toggleHelpers() {
-        this._gridHelper.visible = !this._gridHelper.visible;
-        this._backLightHelper.visible = !this._backLightHelper.visible;
-        this._keyLightHelper.visible = !this._keyLightHelper.visible;
-        this._fillLightHelper.visible = !this._fillLightHelper.visible;
-        this._hemiLightHelper.visible = !this._hemiLightHelper.visible;
+        return this._helpers.toggle();
+    }
 
-        return this._gridHelper.visible;
+    resetModelPosition() {
+        this._controls.reset();
+        this._fitCameraToModel();
     }
 }
 
-
-export {BoxVisualization};
+window.Viewer = Viewer;

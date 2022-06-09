@@ -1,0 +1,72 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: white;
+    font-family: Geneva, sans-serif;
+    font-size: 14px;
+
+}
+
+a {
+    color: #3CB371;
+}
+
+main {
+    margin: 2em auto 0 auto;
+    max-width: 1200px;
+    width: 1200px;
+    display: flex;
+}
+
+#viewer {
+    height: 600px;
+    width: 600px;
+    margin-right: 1em;
+    box-shadow: 0 0 2px 1px rgba(0, 0, 0, 1);
+}
+
+#controls {
+    margin-left: 1em;
+}
+
+.button {
+    border-radius: 0.2em;
+    background-color: white;
+    color: #3CB371;
+    border: 3px solid #3CB371;
+    font-weight: bold;
+    padding: 0.5em 1em;
+    cursor: pointer;
+    display: inline-block;
+    font-size: 14px;
+    text-transform: uppercase;
+}
+.button-sm {
+    padding: 0.2em 0.6em;
+}
+
+.center {
+    text-align: center;
+    margin-top: 2em;
+}
+
+canvas {
+    display: block;
+}
+
+.footer {
+    padding-bottom: 2em;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+.material-icons {
+    vertical-align: bottom;
+    font-size: 20px;
+}
+
+.mr-4 {
+    margin-right: 0.4rem;
+}

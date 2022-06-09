@@ -27,9 +27,9 @@ module.exports = {
         extensions: ['.json', '.js']
     },
     output: {
-        path: path.resolve(__dirname, 'dist'),
-        filename: `${pkg.name}.min.js`,
-        library: pkg.name,
+        path: path.resolve(__dirname, 'dist', 'js'),
+        filename: `viewer.min.js`,
+        library: 'viewer',
         libraryTarget: 'umd',
         umdNamedDefine: true
     },

@@ -3,128 +3,24 @@
 <head>
     <meta charset="utf-8">
     <title>Javascript 3D Model Viewer</title>
+
+    <link rel="stylesheet" href="styles/material-icons.css">
 <!--    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">-->
-    <style>
-        @font-face {
-          font-family: 'Material Icons';
-          font-style: normal;
-          font-weight: 400;
-          src: local('Material Icons'),
-            local('MaterialIcons-Regular'),
-            url(/assets/MaterialIcons-Regular.ttf) format('truetype');
-        }
 
-        .material-icons {
-          font-family: 'Material Icons';
-          font-weight: normal;
-          font-style: normal;
-          font-size: 24px;  /* Preferred icon size */
-          display: inline-block;
-          line-height: 1;
-          text-transform: none;
-          letter-spacing: normal;
-          word-wrap: normal;
-          white-space: nowrap;
-          direction: ltr;
+    <script type="application/javascript" src="libs/three.min.r141.js"></script>
+    <script type="application/javascript" src="libs/fflate.min.js"></script>
+    <script type="application/javascript" src="libs/loaders/FBXLoader.js"></script>
+    <script type="application/javascript" src="libs/controls/OrbitControls.js"></script>
+    <script type="application/javascript" src="libs/controls/TrackballControls.js"></script>
+<!--    <script type="application/javascript" src="https://unpkg.com/browse/three@0.141.0/build/three.min.js"></script>-->
+<!--    <script type="application/javascript" src="https://unpkg.com/browse/three@0.141.0/examples/js/loaders/FBXLoader.js"></script>-->
+<!--    <script type="application/javascript" src="https://unpkg.com/browse/three@0.141.0/examples/js/controls/OrbitControls.js"></script>-->
+<!--    <script type="application/javascript" src="https://unpkg.com/browse/three@0.141.0/examples/js/controls/TrackballControls.js"></script>-->
 
-          /* Support for all WebKit browsers. */
-          -webkit-font-smoothing: antialiased;
-          /* Support for Safari and Chrome. */
-          text-rendering: optimizeLegibility;
-          /* Support for Firefox. */
-          -moz-osx-font-smoothing: grayscale;
-        }
+    <script src="js/viewer.js"></script>
 
-        /* Rules for sizing the icon. */
-        .material-icons.md-18 { font-size: 18px; }
-        .material-icons.md-24 { font-size: 24px; }
-        .material-icons.md-36 { font-size: 36px; }
-        .material-icons.md-48 { font-size: 48px; }
-
-        /* Rules for using icons as black on a light background. */
-        .material-icons.md-dark { color: rgba(0, 0, 0, 0.54); }
-        .material-icons.md-dark.md-inactive { color: rgba(0, 0, 0, 0.26); }
-
-        /* Rules for using icons as white on a dark background. */
-        .material-icons.md-light { color: rgba(255, 255, 255, 1); }
-        .material-icons.md-light.md-inactive { color: rgba(255, 255, 255, 0.3); }
-
-        .material-icons.orange600 { color: #FB8C00; }
-    </style>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: white;
-            font-family: Geneva, sans-serif;
-            font-size: 14px;
-
-        }
-
-        a {
-            color: #3CB371;
-        }
-
-        main {
-            margin: 2em auto 0 auto;
-            max-width: 1200px;
-            width: 1200px;
-            display: flex;
-        }
-
-        #viewer {
-            height: 600px;
-            width: 600px;
-            margin-right: 1em;
-            box-shadow: 0 0 2px 1px rgba(0, 0, 0, 1);
-        }
-
-        #controls {
-            margin-left: 1em;
-        }
-
-        .button {
-            border-radius: 0.2em;
-            background-color: white;
-            color: #3CB371;
-            border: 3px solid #3CB371;
-            font-weight: bold;
-            padding: 0.5em 1em;
-            cursor: pointer;
-            display: inline-block;
-            font-size: 14px;
-            text-transform: uppercase;
-        }
-        .button-sm {
-            padding: 0.2em 0.6em;
-        }
-
-        .center {
-            text-align: center;
-            margin-top: 2em;
-        }
-
-        canvas {
-            display: block;
-        }
-
-        .footer {
-            padding-bottom: 2em;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .material-icons {
-            vertical-align: bottom;
-            font-size: 20px;
-        }
-
-        .mr-4 {
-            margin-right: 0.4rem;
-        }
-    </style>
+    <link rel="stylesheet" href="styles/index.css">
+    <script type="application/javascript" src="js/index.js"></script>
 </head>
 
 <body>
@@ -177,6 +73,13 @@
             </div>
 
             <div class="center">
+                <button class="button" id="reset-model-position-button">
+                    <span class="material-icons">restart_alt</span>
+                    Reset model position
+                </button>
+            </div>
+
+            <div class="center">
                 <button class="button" id="play-animation-button">
                     <span class="material-icons">play_arrow</span>
                     <span>Play</span>
@@ -221,170 +124,5 @@
     </main>
 </div>
 
-<script src="js-3d-model-viewer.js"></script>
-
-<script>
-    const {BoxVisualization} = this['js-3d-model-viewer'];
-
-    const MODEL_URL = './assets/Vine1.fbx';
-    const TEXTURE_URL = './assets/Ns2604.png';
-
-    const loadingElement = document.getElementById('loading');
-    const errorElement = document.getElementById('error');
-    const viewerElement = document.getElementById('viewer');
-    const animationSpeedElement = document.getElementById('animation-speed-value');
-    const rotationSpeedElement = document.getElementById('rotation-speed-value');
-    const pullAnimationSpeedElement = document.getElementById('pull-animation-speed-value');
-    const controlsTypeElement = document.getElementById('controls-type-value');
-
-    const onLoading = (ev) => {
-        const progress = Math.floor(100 * ev.detail.loaded / ev.detail.total);
-        loadingElement.innerHTML = 'Loading... ' + progress + '%';
-        errorElement.innerHTML = '';
-    }
-    viewerElement.addEventListener('modelLoading', onLoading);
-    viewerElement.addEventListener('textureLoading', onLoading);
-
-    const onLoaded = () => {
-        loadingElement.innerHTML = '';
-        errorElement.innerHTML = '';
-    }
-    viewerElement.addEventListener('modelLoaded', onLoaded);
-    viewerElement.addEventListener('textureLoaded', onLoaded);
-
-    const onLoadingError = (ev) => {
-        loadingElement.innerHTML = '';
-        errorElement.innerHTML = 'Error: ' + ev.detail.err.message;
-    }
-    viewerElement.addEventListener('modelLoadingError', onLoadingError);
-    viewerElement.addEventListener('textureLoadingError', onLoadingError);
-
-    // ---------
-
-    const playAnimationButton = document.getElementById('play-animation-button');
-    const stopAnimationButton = document.getElementById('stop-animation-button');
-
-    const playAnimation = () => { boxVis.playAnimation(); };
-    const pauseAnimation = () => { boxVis.pauseAnimation(); };
-    const stopAnimation = () => { boxVis.stopAnimation(); };
-
-    playAnimationButton.addEventListener('click', playAnimation);
-    stopAnimationButton.addEventListener('click', stopAnimation);
-
-    viewerElement.addEventListener('animationStarted', function (ev) {
-        playAnimationButton.removeEventListener('click', playAnimation);
-
-        playAnimationButton.children[0].innerHTML = 'pause';
-        playAnimationButton.children[1].innerHTML = 'Pause';
-        playAnimationButton.addEventListener('click', pauseAnimation);
-    });
-
-    const onPauseOrStop = () => {
-        playAnimationButton.removeEventListener('click', pauseAnimation);
-
-        playAnimationButton.children[0].innerHTML = 'play_arrow';
-        playAnimationButton.children[1].innerHTML = 'Play';
-        playAnimationButton.addEventListener('click', playAnimation);
-    }
-
-    viewerElement.addEventListener('animationPaused', onPauseOrStop);
-    viewerElement.addEventListener('animationStopped', onPauseOrStop);
-
-    // ---------
-
-    const boxVis = new BoxVisualization({containerElementId: 'viewer'});
-
-    document.getElementById('open-fbx-model-input')
-        .addEventListener('change', (ev) => {
-            const uploadedFile = ev.target.files[0];
-            const url = URL.createObjectURL(uploadedFile);
-            boxVis.clearScene();
-            boxVis.loadModel(url)
-                .then(() => URL.revokeObjectURL(url))
-                .catch((err) => {
-                    console.error(err);
-                    URL.revokeObjectURL(url)
-                });
-        });
-
-    document.getElementById('open-texture-input')
-        .addEventListener('change', (ev) => {
-            const uploadedFile = ev.target.files[0];
-            const url = URL.createObjectURL(uploadedFile);
-            boxVis.loadTexture(url)
-                .then(() => URL.revokeObjectURL(url))
-                .catch((err) => {
-                    console.error(err);
-                    URL.revokeObjectURL(url)
-                });
-        });
-
-    const toggleHelpersButton = document.getElementById('toggle-helpers-button');
-    toggleHelpersButton.addEventListener('click', function() {
-        const isVisible = boxVis.toggleHelpers();
-        toggleHelpersButton.children[0].innerText = isVisible ? 'grid_on' : 'grid_off';
-    });
-
-    const togglePanButton = document.getElementById('toggle-pan-button');
-    togglePanButton.addEventListener('click', function() {
-        const isEnabled = boxVis.togglePan();
-        togglePanButton.children[0].innerText = isEnabled ? 'pan_tool' : 'do_not_touch';
-    });
-
-    document.getElementById('load-texture-button')
-        .addEventListener('click', function () {
-            boxVis.loadTexture(TEXTURE_URL).catch(error => console.error(error));
-    });
-
-    document.getElementById('fullscreen-button')
-        .addEventListener('click', function () {
-            if (document.fullscreenEnabled && !document.fullscreenElement)
-                viewerElement.requestFullscreen();
-        });
-
-    document.getElementById('speed-up-animation-button')
-        .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.changeAnimationTimeScale(0.1) * 100) / 100;
-            animationSpeedElement.innerHTML = currentValue.toString();
-        });
-
-    document.getElementById('slow-down-animation-button')
-        .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.changeAnimationTimeScale(-0.1) * 100) / 100;
-            animationSpeedElement.innerHTML = currentValue.toString();
-        });
-
-    document.getElementById('speed-up-pull-animation-button')
-        .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.changePullAnimationSpeed(0.01) * 100) / 100;
-            pullAnimationSpeedElement.innerHTML = currentValue.toString();
-        });
-
-    document.getElementById('slow-down-pull-animation-button')
-        .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.changePullAnimationSpeed(-0.01) * 100) / 100;
-            pullAnimationSpeedElement.innerHTML = currentValue.toString();
-        });
-
-    document.getElementById('speed-up-rotation-button')
-        .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.changeControlsRotateSpeed(0.1) * 100) / 100;
-            rotationSpeedElement.innerHTML = currentValue.toString();
-        });
-
-    document.getElementById('slow-down-rotation-button')
-        .addEventListener('click', function() {
-            const currentValue = Math.round(boxVis.changeControlsRotateSpeed(-0.1) * 100) / 100;
-            rotationSpeedElement.innerHTML = currentValue.toString();
-        });
-
-    // ---------
-
-    document.addEventListener('DOMContentLoaded', function() {
-        boxVis.loadModel(MODEL_URL)
-            .then(() => togglePanButton.click())
-            .catch(err => console.error(err));
-    });
-</script>
 </body>
 </html>
