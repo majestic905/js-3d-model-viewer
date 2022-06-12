@@ -14,14 +14,21 @@ class Helpers {
         scene.add(this._gridHelper);
     }
 
-    toggle() {
-        this._gridHelper.visible = !this._gridHelper.visible;
-        this._backLightHelper.visible = !this._backLightHelper.visible;
-        this._keyLightHelper.visible = !this._keyLightHelper.visible;
-        this._fillLightHelper.visible = !this._fillLightHelper.visible;
-        this._hemiLightHelper.visible = !this._hemiLightHelper.visible;
-
+    get visible() {
         return this._gridHelper.visible;
+    }
+
+    set visible(value) {
+        this._gridHelper.visible = value;
+        this._backLightHelper.visible = value;
+        this._keyLightHelper.visible = value;
+        this._fillLightHelper.visible = value;
+        this._hemiLightHelper.visible = value;
+    }
+
+    toggle() {
+        this.visible = !this.visible;
+        return this.visible;
     }
 }
 
@@ -307,18 +314,6 @@ class Viewer {
         this._pullAnimationTargetPosition = this._modelPositions[index];
     }
 
-    _disposeAnimations() {
-        this.stopAnimation();
-
-        if (this._animationMixer) {
-            this._animationMixer.removeEventListener('loop', this._onAnimationLoop);
-            this._animationMixer.uncacheAction(this._animationAction);
-        }
-
-        this._animationAction = undefined;
-        this._animationMixer = undefined;
-    }
-
     pauseAnimation() {
         if (this._animationAction && !this._animationAction.paused) {
             this._animationAction.warp(this._animationAction.timeScale, 0, 0.1);
@@ -351,8 +346,18 @@ class Viewer {
     // ---------
 
     clearScene() {
-        this._disposeAnimations()
+        // dispose animations
+        this.stopAnimation();
 
+        if (this._animationMixer) {
+            this._animationMixer.removeEventListener('loop', this._onAnimationLoop);
+            this._animationMixer.uncacheAction(this._animationAction);
+        }
+
+        this._animationAction = undefined;
+        this._animationMixer = undefined;
+
+        // dispose objects
         for (const obj of this._scene.children) {
             if (obj.type === "Group") {
                 this._scene.remove(obj);
@@ -372,48 +377,50 @@ class Viewer {
         }
     }
 
-    // ---------
-
-    changeAnimationTimeScale(amount) {
-        if (!this._animationAction)
-            return null;
-
-        let value = this._animationAction.timeScale + amount;
-        value = Math.max(0.2, value);
-        value = Math.min(2, value);
-        this._animationAction.timeScale = value;
-        return value;
-    }
-
-    changeControlsRotateSpeed(amount) {
-        let value = this._controls.rotateSpeed + amount;
-        value = Math.max(0.2, value);
-        value = Math.min(2, value);
-        this._controls.rotateSpeed = value;
-        return value;
-    }
-
-    changePullAnimationSpeed(amount) {
-        let value = this._pullAnimationSmoothness + amount;
-        value = Math.max(0.01, value);
-        value = Math.min(1, value);
-        this._pullAnimationSmoothness = value;
-        return value;
-    }
-
-    togglePan() {
-        this._controls.enablePan = !this._controls.enablePan;
-        return this._controls.enablePan;
-    }
-
-    toggleHelpers() {
-        return this._helpers.toggle();
-    }
-
     resetModelPosition() {
         this._controls.reset();
         this._fitCameraToModel();
     }
+
+    // ---------
+
+    get maxDistance() { return this._controls.maxDistance; }
+    set maxDistance(value) { this._controls.maxDistance = parseInt(value, 10); }
+
+    get minDistance() { return this._controls.minDistance; }
+    set minDistance(value) { this._controls.minDistance = parseInt(value, 10); }
+
+    get enablePan() { return this._controls.enablePan; }
+    set enablePan(value) { this._controls.enablePan = Boolean(value); }
+
+    get rotateSpeed() { return this._controls.rotateSpeed; }
+    set rotateSpeed(value) { this._controls.rotateSpeed = Math.min(2, Math.max(0.2, parseFloat(value))); }
+
+    get cameraNear() { return this._camera.near; }
+    set cameraNear(value) { this._camera.near = parseInt(value, 10); }
+
+    get cameraFar() { return this._camera.far; }
+    set cameraFar(value) { this._camera.far = parseInt(value, 10); }
+
+    get animationTimeScale() { return this._animationAction.timeScale; }
+    set animationTimeScale(value) { this._animationAction.timeScale = Math.min(2, Math.max(0.2, parseFloat(value))); }
+
+    get pullSmoothness() { return this._pullAnimationSmoothness; }
+    set pullSmoothness(value) { return this._pullAnimationSmoothness = Math.min(1, Math.max(0.01, parseFloat(value))); }
+
+    get helpersVisible() { return this._helpers.visible; }
+    set helpersVisible(value) { this._helpers.visible = Boolean(value); }
+
+    togglePan() {
+        this.enablePan = !this.enablePan;
+        return this.enablePan;
+    }
+
+    toggleHelpers() {
+        this.helpersVisible = !this.helpersVisible;
+        return this.helpersVisible;
+    }
 }
+
 
 window.Viewer = Viewer;

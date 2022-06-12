@@ -17,10 +17,14 @@ document.addEventListener('DOMContentLoaded', function() {
         viewer: document.getElementById('viewer'),
     };
 
-    const valueSpans = {
-        animationSpeed: document.getElementById('animation-speed-value'),
-        rotationSpeed: document.getElementById('rotation-speed-value'),
-        pullAnimationSpeed: document.getElementById('pull-animation-speed-value'),
+    const numberInputs = {
+        animationTimeScale: document.getElementById('animationTimeScale'),
+        pullSmoothness: document.getElementById('pullSmoothness'),
+        rotateSpeed: document.getElementById('rotateSpeed'),
+        minDistance: document.getElementById('minDistance'),
+        maxDistance: document.getElementById('maxDistance'),
+        cameraNear: document.getElementById('cameraNear'),
+        cameraFar: document.getElementById('cameraFar'),
     };
 
     const buttons = {
@@ -142,37 +146,27 @@ document.addEventListener('DOMContentLoaded', function() {
             divs.viewer.requestFullscreen();
     });
 
-    buttons.speedUpAnimation.addEventListener('click', function() {
-        valueSpans.animationSpeed.innerHTML = round(boxVis.changeAnimationTimeScale(0.1), 2).toString();
-    });
-
-    buttons.slowDownAnimation.addEventListener('click', function() {
-        valueSpans.animationSpeed.innerHTML = round(boxVis.changeAnimationTimeScale(-0.1), 2).toString();
-    });
-
-    buttons.speedUpPullAnimation.addEventListener('click', function() {
-        valueSpans.pullAnimationSpeed.innerHTML = round(boxVis.changePullAnimationSpeed(0.01), 2).toString();
-    });
-
-    buttons.slowDownPullAnimation.addEventListener('click', function() {
-        valueSpans.pullAnimationSpeed.innerHTML = round(boxVis.changePullAnimationSpeed(-0.01), 2).toString();
-    });
-
-    buttons.speedUpRotation.addEventListener('click', function() {
-        valueSpans.rotationSpeed.innerHTML = round(boxVis.changeControlsRotateSpeed(0.1), 2).toString();
-    });
-
-    buttons.slowDownRotation.addEventListener('click', function() {
-        valueSpans.rotationSpeed.innerHTML = round(boxVis.changeControlsRotateSpeed(-0.1), 2).toString();
-    });
-
     buttons.resetModelPosition.addEventListener('click', function() {
         boxVis.resetModelPosition();
     })
 
     // ---------
 
+    for (const input of Object.values(numberInputs)) {
+        input.addEventListener('change', function(ev) {
+            const name = ev.target.name;
+            const value = ev.target.value;
+            boxVis[name] = value;
+        });
+    }
+
+    // ---------
+
     boxVis.loadModel(MODEL_URL)
         .then(() => buttons.togglePan.click())
+        .then(() => {
+            for (const [inputName, input] of Object.entries(numberInputs))
+                input.value = boxVis[inputName];
+        })
         .catch(err => console.error(err));
 });
