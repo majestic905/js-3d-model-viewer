@@ -28,7 +28,6 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const buttons = {
-        loadTexture: document.getElementById('load-texture-button'),
         fullscreen: document.getElementById('fullscreen-button'),
         speedUpAnimation: document.getElementById('speed-up-animation-button'),
         slowDownAnimation: document.getElementById('slow-down-animation-button'),
@@ -135,10 +134,6 @@ document.addEventListener('DOMContentLoaded', function() {
     buttons.togglePan.addEventListener('click', function() {
         const isEnabled = boxVis.togglePan();
         buttons.togglePan.children[0].innerText = isEnabled ? 'pan_tool' : 'do_not_touch';
-    });
-
-    buttons.loadTexture.addEventListener('click', function () {
-        boxVis.loadTexture(TEXTURE_URL).catch(error => console.error(error));
     });
 
     buttons.fullscreen.addEventListener('click', function () {
