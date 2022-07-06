@@ -44,6 +44,10 @@ main {
 .button-sm {
     padding: 0.2em 0.6em;
 }
+.button.disabled {
+    color: gray;
+    border: 2px solid gray;
+}
 
 .center {
     text-align: center;

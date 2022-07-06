@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
             boxVis.clearScene();
             boxVis.loadModel(url)
                 .then(() => URL.revokeObjectURL(url))
+                .then(() => disableOrEnableAnimationButtons())
                 .catch((err) => {
                     console.error(err);
                     URL.revokeObjectURL(url)
@@ -145,6 +146,16 @@ document.addEventListener('DOMContentLoaded', function() {
         boxVis.resetModelPosition();
     })
 
+    function disableOrEnableAnimationButtons() {
+        if (boxVis.hasAnimation) {
+            buttons.playAnimation.classList.remove('disabled');
+            buttons.stopAnimation.classList.remove('disabled');
+        } else {
+            buttons.playAnimation.classList.add('disabled');
+            buttons.stopAnimation.classList.add('disabled');
+        }
+    }
+
     // ---------
 
     for (const input of Object.values(numberInputs)) {
@@ -163,5 +174,6 @@ document.addEventListener('DOMContentLoaded', function() {
             for (const [inputName, input] of Object.entries(numberInputs))
                 input.value = boxVis[inputName];
         })
+        .then(() => disableOrEnableAnimationButtons())
         .catch(err => console.error(err));
 });

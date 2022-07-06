@@ -66,7 +66,7 @@ class Viewer {
 
         this._controls = new THREE.OrbitControls(this._camera, this._renderer.domElement);
         this._controls.minDistance = 250;  // will be changed after model load
-        this._controls.maxDistance = 2000;
+        this._controls.maxDistance = 3000;
         this._controls.enablePan = false;
 
         // -------------
@@ -141,7 +141,7 @@ class Viewer {
             this._model.position.lerp(this._pullAnimationTargetPosition, this._pullAnimationSmoothness);
 
         // trackball controls needs to be updated in the animation loop before it will work
-        this._controls.update();
+        // this._controls.update();
 
         this._renderer.render(this._scene, this._camera);
 
@@ -258,7 +258,7 @@ class Viewer {
     }
 
     _fitCameraToModel() { // TODO: split/refactor method
-        console.log('before', this._model.position, this._camera.position);
+        // console.log('before', this._model.position, this._camera.position);
 
         const boundingBox = new THREE.Box3();
         const size = new THREE.Vector3();
@@ -290,7 +290,7 @@ class Viewer {
         const maxLen = Math.max(size.x, size.y, size.z);
         this._controls.minDistance = Math.trunc(maxLen / 2 + 75);
 
-        console.log('after', this._model.position, this._camera.position);
+        // console.log('after', this._model.position, this._camera.position);
     }
 
     // ---------
@@ -384,6 +384,9 @@ class Viewer {
 
     // ---------
 
+    get background() { return this._scene.background; }
+    set background(value) { this._scene.background = value; }
+
     get maxDistance() { return this._controls.maxDistance; }
     set maxDistance(value) { this._controls.maxDistance = parseInt(value, 10); }
 
@@ -397,10 +400,10 @@ class Viewer {
     set rotateSpeed(value) { this._controls.rotateSpeed = Math.min(2, Math.max(0.2, parseFloat(value))); }
 
     get cameraNear() { return this._camera.near; }
-    set cameraNear(value) { this._camera.near = parseInt(value, 10); }
+    set cameraNear(value) { this._camera.near = parseInt(value, 10); this._camera.updateProjectionMatrix(); }
 
     get cameraFar() { return this._camera.far; }
-    set cameraFar(value) { this._camera.far = parseInt(value, 10); }
+    set cameraFar(value) { this._camera.far = parseInt(value, 10); this._camera.updateProjectionMatrix(); }
 
     get animationTimeScale() { return this._animationAction.timeScale; }
     set animationTimeScale(value) { this._animationAction.timeScale = Math.min(2, Math.max(0.2, parseFloat(value))); }
@@ -410,6 +413,8 @@ class Viewer {
 
     get helpersVisible() { return this._helpers.visible; }
     set helpersVisible(value) { this._helpers.visible = Boolean(value); }
+
+    get hasAnimation() { return this._model && this._model.animations && this._model.animations.length > 0; }
 
     togglePan() {
         this.enablePan = !this.enablePan;
