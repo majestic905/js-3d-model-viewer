@@ -66,7 +66,7 @@ class Viewer {
 
         this._controls = new THREE.OrbitControls(this._camera, this._renderer.domElement);
         this._controls.minDistance = 250;  // will be changed after model load
-        this._controls.maxDistance = 3000;
+        this._controls.maxDistance = 2000;
         this._controls.enablePan = false;
 
         // -------------
