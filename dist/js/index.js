@@ -8,7 +8,7 @@ function round(value, n) {
 document.addEventListener('DOMContentLoaded', function() {
     const Viewer = window.Viewer;
 
-    const MODEL_URL = './assets/Vine1.fbx';
+    const MODEL_URL = './assets/VinePremium.fbx';
     const TEXTURE_URL = './assets/Ns2604.png';
 
     const divs = {

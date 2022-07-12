@@ -414,6 +414,8 @@ class Viewer {
     get helpersVisible() { return this._helpers.visible; }
     set helpersVisible(value) { this._helpers.visible = Boolean(value); }
 
+    set endLoopPosition(value) { this._modelPositions[1] = new THREE.Vector3(value.x, value.y, value.z); }
+
     get hasAnimation() { return this._model && this._model.animations && this._model.animations.length > 0; }
 
     togglePan() {
