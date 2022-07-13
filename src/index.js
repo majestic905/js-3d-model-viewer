@@ -253,7 +253,7 @@ class Viewer {
         boundingBox.setFromObject(this._model);
         boundingBox.getSize(size);
 
-        const scale = 1000 / Math.max(size.x, size.z);
+        const scale = 1000 / Math.max(size.x, size.y, size.z);
         this._model.scale.set(scale, scale, scale);
     }
 
@@ -277,7 +277,7 @@ class Viewer {
         const cameraX = Math.abs(size.x / 2 * Math.tan(fov * 2));
         // when using ._scaleModel(), this will (almost?) always be 1000 (factor from that method)
         // and (probably?)can be discarded by using constant
-        const x = Math.max(cameraX, size.x);
+        const x = Math.max(cameraX, size.x, size.y, size.z);
         this._camera.position.set(-x, x, x);
         this._camera.lookAt(new THREE.Vector3(0, 0, 0));
 
