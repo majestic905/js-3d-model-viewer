@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(() => {
             disableOrEnableAnimationButtons();
             saveDefaultOptions();
-            setCurrentModelOptions();
+            // setCurrentModelOptions();
             setInitialInputValues();
             setupStateUpdates();
         })
