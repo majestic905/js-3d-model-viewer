@@ -1,4 +1,4 @@
-function round(value, n) {
+function round(value, n=2) {
     if (n === 0)
         return Math.round(value);
 
@@ -6,10 +6,12 @@ function round(value, n) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const Viewer = window.Viewer;
+    const BoxViewer = window.BoxViewer;
 
-    const MODEL_URL = './assets/BeerBox2.fbx';
-    const TEXTURE_URL = './assets/Ns2604.png';
+    const boxVis = new BoxViewer({containerElementId: 'viewer'});
+
+    const MODEL_URL = './assets/2604.fbx';
+    const TEXTURE_URL = './assets/texture.logo.kraft.png';
 
     const divs = {
         loading: document.getElementById('loading'),
@@ -27,19 +29,22 @@ document.addEventListener('DOMContentLoaded', function() {
         cameraFar: document.getElementById('cameraFar'),
     };
 
+    const checkboxInputs = {
+        enablePan: document.getElementById('enablePan'),
+        helpersVisible: document.getElementById('helpersVisible')
+    }
+
     const buttons = {
         fullscreen: document.getElementById('fullscreen-button'),
-        speedUpAnimation: document.getElementById('speed-up-animation-button'),
-        slowDownAnimation: document.getElementById('slow-down-animation-button'),
-        speedUpPullAnimation: document.getElementById('speed-up-pull-animation-button'),
-        slowDownPullAnimation: document.getElementById('slow-down-pull-animation-button'),
-        speedUpRotation: document.getElementById('speed-up-rotation-button'),
-        slowDownRotation: document.getElementById('slow-down-rotation-button'),
         resetModelPosition: document.getElementById('reset-model-position-button'),
         playAnimation: document.getElementById('play-animation-button'),
         stopAnimation: document.getElementById('stop-animation-button'),
-        toggleHelpers: document.getElementById('toggle-helpers-button'),
-        togglePan: document.getElementById('toggle-pan-button'),
+    }
+
+    const readonlyInputs = {
+        cameraPosition: document.getElementById('cameraPosition'),
+        cameraRotation: document.getElementById('cameraRotation'),
+        animationTime: document.getElementById('animationTime')
     }
 
     // ---------
@@ -95,16 +100,24 @@ document.addEventListener('DOMContentLoaded', function() {
     divs.viewer.addEventListener('animationPaused', onPauseOrStop);
     divs.viewer.addEventListener('animationStopped', onPauseOrStop);
 
-    // ---------
+    function disableOrEnableAnimationButtons() {
+        if (boxVis.hasAnimation) {
+            buttons.playAnimation.classList.remove('disabled');
+            buttons.stopAnimation.classList.remove('disabled');
+        } else {
+            buttons.playAnimation.classList.add('disabled');
+            buttons.stopAnimation.classList.add('disabled');
+        }
+    }
 
-    const boxVis = new Viewer({containerElementId: 'viewer'});
+    // ---------
 
     document.getElementById('open-fbx-model-input')
         .addEventListener('change', (ev) => {
             const uploadedFile = ev.target.files[0];
             const url = URL.createObjectURL(uploadedFile);
             boxVis.clearScene();
-            boxVis.loadModel(url)
+            boxVis.importModel(url, true)
                 .then(() => URL.revokeObjectURL(url))
                 .then(() => disableOrEnableAnimationButtons())
                 .catch((err) => {
@@ -125,16 +138,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
 
-    // ---------
-
-    buttons.toggleHelpers.addEventListener('click', function() {
-        const isVisible = boxVis.toggleHelpers();
-        buttons.toggleHelpers.children[0].innerText = isVisible ? 'grid_on' : 'grid_off';
+    checkboxInputs.helpersVisible.addEventListener('change', function(ev) {
+        boxVis.helpersVisible = ev.target.checked;
     });
 
-    buttons.togglePan.addEventListener('click', function() {
-        const isEnabled = boxVis.togglePan();
-        buttons.togglePan.children[0].innerText = isEnabled ? 'pan_tool' : 'do_not_touch';
+    checkboxInputs.enablePan.addEventListener('change', function(ev) {
+        boxVis.enablePan = ev.target.checked;
     });
 
     buttons.fullscreen.addEventListener('click', function () {
@@ -146,18 +155,6 @@ document.addEventListener('DOMContentLoaded', function() {
         boxVis.resetModelPosition();
     })
 
-    function disableOrEnableAnimationButtons() {
-        if (boxVis.hasAnimation) {
-            buttons.playAnimation.classList.remove('disabled');
-            buttons.stopAnimation.classList.remove('disabled');
-        } else {
-            buttons.playAnimation.classList.add('disabled');
-            buttons.stopAnimation.classList.add('disabled');
-        }
-    }
-
-    // ---------
-
     for (const input of Object.values(numberInputs)) {
         input.addEventListener('change', function(ev) {
             const name = ev.target.name;
@@ -168,12 +165,98 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ---------
 
-    boxVis.loadModel(MODEL_URL)
-        .then(() => buttons.togglePan.click())
+    function getCameraPosition() {
+        const {x, y, z} = boxVis._camera.position;
+        return [round(x), round(y), round(z)];
+    }
+
+    function getCameraRotation() {
+        const {x, y, z} = boxVis._camera.rotation;
+        return [round(x), round(y), round(z)];
+    }
+
+    function getOptions() {
+        return {
+            animationTimeScale: round(boxVis.animationTimeScale),
+            pullSmoothness: round(boxVis.pullSmoothness),
+            rotateSpeed: round(boxVis.rotateSpeed),
+            minDistance: round(boxVis.minDistance),
+            maxDistance: round(boxVis.maxDistance),
+            cameraNear: round(boxVis.cameraNear),
+            cameraFar: round(boxVis.cameraFar),
+            helpersVisible: boxVis.helpersVisible,
+            enablePan: boxVis.enablePan,
+            cameraPosition: getCameraPosition().join(','),
+            cameraRotation: getCameraRotation().join(','),
+            animationTime: round(boxVis.animationTime, 1)
+        }
+    }
+
+    let defaultOptions = {};
+
+    function getChangedOptions() {
+        const allOptions = getOptions();
+        const changedOptions = {};
+
+        for (const key in allOptions)
+            if (allOptions[key] !== defaultOptions[key])
+                changedOptions[key] = allOptions[key];
+
+        return changedOptions;
+    }
+
+    const optionsTextarea = document.getElementById("serialized-options");
+
+    // ---------
+
+    function saveDefaultOptions() {
+        defaultOptions = getOptions();
+    }
+
+    function setCurrentModelOptions() {
+        boxVis.enablePan = true;
+        boxVis.cameraPosition = [-1099.7,-1124.38,725.56];
+        boxVis.cameraRotation = [1,-0.69,0.78];
+        boxVis.animationTime = 3.36;
+    }
+
+    function setInitialInputValues() {
+        numberInputs.pullSmoothness.value = boxVis.pullSmoothness;
+        numberInputs.rotateSpeed.value = boxVis.rotateSpeed;
+        numberInputs.minDistance.value = boxVis.minDistance;
+        numberInputs.maxDistance.value = boxVis.maxDistance;
+        numberInputs.cameraNear.value = boxVis.cameraNear;
+        numberInputs.cameraFar.value = boxVis.cameraFar;
+
+        if (boxVis.hasAnimation)
+            numberInputs.animationTimeScale.value = boxVis.animationTimeScale;
+
+        checkboxInputs.helpersVisible.checked = boxVis.helpersVisible;
+        checkboxInputs.enablePan.checked = boxVis.enablePan;
+    }
+
+    function setupStateUpdates() {
+        setInterval(() => {
+            readonlyInputs.cameraPosition.value = getCameraPosition().join(',');
+            readonlyInputs.cameraRotation.value = getCameraRotation().join(',');
+
+            if (boxVis.hasAnimation)
+                readonlyInputs.animationTime.value = round(boxVis._animationAction.time).toString();
+
+            optionsTextarea.value = JSON.stringify(getChangedOptions());
+        }, 500);
+    }
+
+    boxVis.importModel(MODEL_URL, false)
         .then(() => {
-            for (const [inputName, input] of Object.entries(numberInputs))
-                input.value = boxVis[inputName];
+            disableOrEnableAnimationButtons();
+            saveDefaultOptions();
+            setCurrentModelOptions();
+            setInitialInputValues();
+            setupStateUpdates();
         })
-        .then(() => disableOrEnableAnimationButtons())
+        .then(() => boxVis.loadTexture(TEXTURE_URL))
         .catch(err => console.error(err));
+
+    // ---------
 });

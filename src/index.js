@@ -67,7 +67,7 @@ class Viewer {
         this._controls = new THREE.OrbitControls(this._camera, this._renderer.domElement);
         this._controls.minDistance = 250;  // will be changed after model load
         this._controls.maxDistance = 2000;
-        this._controls.enablePan = false;
+        this._controls.enablePan = true;
 
         // -------------
 
@@ -120,7 +120,7 @@ class Viewer {
     }
 
     _onWindowResize = () => {
-        const isFullscreen = document.fullscreenElement !== null;
+        const isFullscreen = ('webkitFullscreenElement' in document) ? !!document.webkitFullscreenElement : !!document.fullscreenElement;
 
         const width = isFullscreen ? window.innerWidth : this._containerElement.offsetWidth;
         const height = isFullscreen ? window.innerHeight : this._containerElement.offsetHeight;
@@ -153,7 +153,24 @@ class Viewer {
         this._containerElement.dispatchEvent(event);
     }
 
-    // ---------
+    // ----------
+
+    async importModel(url, fitCamera = true) {
+        this._model = await this.loadModel(url);
+
+        this._scaleModel();
+
+        // TODO: need to split fitCamera into 1) changing initial model position, which will be then copied into this._modelPositions[0] and 2) actually fitting camera
+        // if (fitCamera)
+        this._fitCameraToModel();
+
+        this._modelPositions[0] = this._model.position.clone();
+        this._pullAnimationTargetPosition = this._modelPositions[0];
+
+        this._setupAnimation(this._model, this._model.animations);
+
+        this._scene.add(this._model);
+    }
 
     loadModel(url) {
         if (this._sceneLocked)
@@ -171,15 +188,6 @@ class Viewer {
                         }
                     });
 
-                    this._model = obj;
-                    this._scene.add(obj);
-                    this._scaleModel();
-                    this._fitCameraToModel();
-
-                    this._modelPositions[0] = this._model.position.clone();
-                    this._pullAnimationTargetPosition = this._modelPositions[0];
-
-                    this._setupAnimation(obj, obj.animations);
                     this._sceneLocked = false;
 
                     this._emitEvent('modelLoaded', {obj});
@@ -414,9 +422,25 @@ class Viewer {
     get helpersVisible() { return this._helpers.visible; }
     set helpersVisible(value) { this._helpers.visible = Boolean(value); }
 
-    set endLoopPosition(value) { this._modelPositions[1] = new THREE.Vector3(value.x, value.y, value.z); }
+    set endLoopPosition(array3) { this._modelPositions[1] = new THREE.Vector3(...array3); }
+
+    set cameraPosition(array3) { this._camera.position.copy(new THREE.Vector3(...array3)); }
+    set cameraRotation(array3) { this._camera.rotation.copy(new THREE.Euler(...array3)); }
 
     get hasAnimation() { return this._model && this._model.animations && this._model.animations.length > 0; }
+
+    set animationTime(value) {
+        if (!this.hasAnimation)
+            return;
+
+        if (value < 0 || value > this._animationAction.getClip().duration)
+            return;
+
+        this.playAnimation();
+        this._animationMixer.update(value);
+        this.pauseAnimation();
+    }
+    get animationTime() { return this._animationAction?.time || 0; }
 
     togglePan() {
         this.enablePan = !this.enablePan;
@@ -430,4 +454,4 @@ class Viewer {
 }
 
 
-window.Viewer = Viewer;
+window.BoxViewer = Viewer;
